@@ -11,12 +11,13 @@
 #include <stdbool.h>
 #include "linked_list.h"
 
+
 /**
  * A stack based on a double linked list.
  */
 
 
-typedef List Stack;
+typedef list Stack;
 
 /*
  * Initialize the given stack.
@@ -41,7 +42,7 @@ void* stack_pop(Stack* stack);
 /*
  * Get the number of elements in the stack.
  */
-int get_stack_size(const Stack* stack);
+int get_stack_size(Stack* stack);
 
 /*
  * gives the top element of the stack (does not pop it)

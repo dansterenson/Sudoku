@@ -30,7 +30,7 @@ Node* create_node(void* data){
 	return node;
 }
 
-void init_list(List* list){
+void init_list(list* list){
 	if(list != NULL){
 		list->head = NULL;
 		list->tail = NULL;
@@ -38,14 +38,14 @@ void init_list(List* list){
 	}
 }
 
-bool list_is_empty(List* list){
+bool list_is_empty(const list* list){
 	if (list->size == 0){
 		return true;
 	}
 	return false;
 }
 
-bool list_push(List* list, void* data){
+bool list_push(list* list, void* data){
     Node* new_node = create_node(data);
 
     if (new_node == NULL) {
@@ -65,7 +65,7 @@ bool list_push(List* list, void* data){
     return true;
 }
 
-void* list_pop(List* list){
+void* list_pop(list* list){
 	void* data;
     Node* popped = NULL;
 
@@ -92,7 +92,7 @@ void* list_pop(List* list){
     return data;
 }
 
-int get_list_size(List* list){
+int get_list_size(list* list){
 	return list->size;
 }
 
@@ -103,7 +103,18 @@ void* get_node_data(const Node* node){
     return node->data;
 }
 
-const Node* get_head_of_list(const List* list) {
+void free_list_mem(list* list_to_free, void (*func_to_free_data)(void*)){
+	Node* temp;
+	while(list_to_free->head != NULL){
+		temp = list_to_free->head;
+		list_to_free->head = list_to_free->head->next;
+		func_to_free_data(list_to_free->head->data);
+		free(temp);
+	}
+	free(list_to_free);
+}
+
+const Node* get_head_of_list(const list* list) {
     if (list == NULL || list_is_empty(list)) {
         return NULL;
     }
@@ -111,7 +122,7 @@ const Node* get_head_of_list(const List* list) {
     return list->head;
 }
 
-const Node* get_tail_of_list(const List* list) {
+const Node* get_tail_of_list(const list* list) {
     if (list == NULL || list_is_empty(list)) {
         return NULL;
     }
