@@ -10,11 +10,21 @@
 
 #include <stdbool.h>
 
+
 /*
  * this module contains an implementation of a double linked list.
  */
 
-typedef struct Node Node;
+ /*
+ * element of the list, contains two pointers,
+ * one to the next node and one to the previous one.
+ * contains a pointer to the data of the node.
+ */
+typedef struct Node {
+    void* data;
+    struct Node* next;
+    struct Node* prev;
+}Node;
 
 /*
  * The double linked list contains a pointer to the node
@@ -28,6 +38,8 @@ typedef struct list
     Node* tail;
     int size;
 } list;
+
+Node* create_node(void* data);
 
 /*
  * initialize the list
@@ -61,8 +73,5 @@ const Node* get_head_of_list(const list* list);
 const Node* get_tail_of_list(const list* list);
 
 void free_list_mem(list* list_to_free, void (*func_to_free_data)(void*));
-
-
-
 
 #endif /* LINKED_LIST_H_ */

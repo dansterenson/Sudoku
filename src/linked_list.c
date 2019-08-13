@@ -8,21 +8,15 @@
 #include <stdlib.h>
 #include "linked_list.h"
 
-/*
- * element of the list, contains two pointers,
- * one to the next node and one to the previous one.
- * contains a pointer to the data of the node.
- */
-struct Node {
-    void* data;
-    struct Node* next;
-    struct Node* prev;
-};
+
 
 Node* create_node(void* data){
 	Node* node;
 	node = (Node*) calloc(1, sizeof(Node));
-	if(node != NULL){
+	if(node == NULL){
+		return NULL;
+	}
+	else{
 		node->data = data;
 		node->next = NULL;
 		node->prev = NULL;

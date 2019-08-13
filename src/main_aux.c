@@ -7,20 +7,25 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "structures.h"
 #include "linked_list.h"
 #include "main_aux.h"
+#include <ctype.h>
 
+void print_flush(char* str){
+	printf("%s", str);
+	fflush(stdout);
+}
 
 void memory_alloc_problem() {
-	printf("Error in allocating memory.\n");
-	fflush(stdout);
+	print_flush("Error in allocating memory.\n");
 	exit(EXIT_FAILURE);
 }
 
-int get_command_from_user(char command[COMMAND_SIZE + 1]){
-	printf("enter command please: ");
-	fflush(stdout);
+
+int get_command_from_user(char command[COMMAND_SIZE + 1]){ /*from hw3*/
+	print_flush("enter command please: ");
 
 	if(fgets(command, (COMMAND_SIZE + 1), stdin) == NULL){
 		return -1;
@@ -91,15 +96,129 @@ game* create_game(int n, int m, game_modes mode, bool is_mark_errors){
 	return game_new;
 }
 
-void free_board_mem(board* board_to_free){
-	int N = board_to_free->n * board_to_free->m;
-	for (int i = 0; i < N; i++){
-		for (int j = 0; j < N; j++){
-			free(board_to_free->board[i]);
-		}
-		free(board_to_free->board);
+bool cell_in_right_format(int n, int m, int cell){
+	if(cell < 0 || cell > n*m){
+		return false;
 	}
-	free(board_to_free);
+	else{
+		return true;
+	}
+}
+
+int file_not_right_format(FILE *fp){
+	print_flush("Error, file is not in the right format");
+	fclose(fp);
+	return -1;
+}
+
+int load_game_from_file(game* current_game,char* path){
+	FILE *fp;
+	Node* new_node;
+	char c;
+	int new_m, new_n;
+	board* new_board;
+
+	fp = fopen(path, "r");
+
+	if(fp == NULL){
+		print_flush("Error, was not able to open file");
+		return(-1);
+	}
+
+	c = fgetc(fp);
+
+	if(!isdigit(c)){
+		return(file_not_right_format(fp));
+	}
+
+	new_m = c - '0'; /*converts char to int*/
+
+	c = fgetc(fp);
+	if(!isdigit(c)){
+		return(file_not_right_format(fp));
+	}
+
+	new_n = c - '0'; /*converts char to int*/
+	new_board = create_board(new_n, new_m);
+
+	for(int i = 0; i < new_n*new_m; i++){
+		for(int j = 0; j < new_n*new_m; j++){
+			c = fgetc(fp);
+			while (c != ' ' || c != '\n' || c != '\r' || c != 't'){
+				if(!isdigit(c) || cell_in_right_format(new_n, new_m, c - '0')){
+					return(file_not_right_format(fp));
+				}
+				if(c == '.'){
+					new_board->board[i][j].is_fixed = 1;
+				}
+				new_board->board[i][j].value = c - '0';
+			}
+		}
+	}
+	new_node = create_node(new_board);
+
+	if(new_node == NULL){
+		memory_alloc_problem();
+	}
+
+	if(list_push(current_game->undo_redo_list, new_node) != true){
+		printf("Error: problem while pushing to list\n");
+		return -1;
+	}
+	return 0;
+}
+
+int save_game_to_file(game* current_game, char* path){
+	FILE *fp;
+	board* current_board;
+	list* temp_list = current_game->undo_redo_list;
+	current_board = (board*)(temp_list->head->data);
+	int n = current_board->n;
+	int m = current_board->m;
+
+	fp = fopen(path, "w+");
+
+	if(fp == NULL){
+		print_flush("Error, was not able to open file");
+		return -1;
+	}
+
+	fprintf(fp, "%d %d\n", m, n);
+
+	for(int i = 0; i < n*m; i++){
+		for(int j = 0; j < n*m; j++){
+			fprintf(fp, "%d",current_board->board[i][j].value);
+			/*in edit mode' every non empty cell is marked as fixed so needs a "."*/
+			if(current_board->board[i][j].is_fixed == true
+					|| (current_game->mode == edit && current_board->board[i][j].value != 0)){
+				fprintf(fp, ".");
+			}
+
+			if(j == n*m - 1){
+				fprintf(fp, "\n");
+			}
+			else fprintf(fp, " ");
+		}
+	}
+
+	if(fclose(fp) != 0){
+		print_flush("Error, was not able to close file");
+		return -1;
+	}
+
+	printf("Board saved to file\n");
+	return 0;
+}
+
+
+void free_board_mem(void* board_to_free){
+	board* temp_board = (board*)board_to_free;
+	int N = temp_board->n * temp_board->m;
+	for (int i = 0; i < N; i++){
+		free(temp_board->board[i]);
+	}
+	free(temp_board->board);
+	free(temp_board);
 }
 
 void free_undo_redo_list(list* list_to_free){
