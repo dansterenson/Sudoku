@@ -23,7 +23,6 @@ void memory_alloc_problem() {
 	exit(EXIT_FAILURE);
 }
 
-
 int get_command_from_user(char command[COMMAND_SIZE + 1]){ /*from hw3*/
 	print_flush("enter command please: ");
 
@@ -107,15 +106,19 @@ bool cell_in_right_format(int n, int m, int cell){
 
 int file_not_right_format(FILE *fp){
 	print_flush("Error, file is not in the right format");
-	fclose(fp);
+	if(fclose(fp) != 0){
+		print_flush("Error, was not able to close file");
+	}
 	return -1;
 }
 
-int load_game_from_file(game* current_game,char* path){
+int load_game_from_file(game* current_game, char* path){
 	FILE *fp;
 	Node* new_node;
 	char c;
+	int cell_value;
 	int new_m, new_n;
+	int num_read = 0;
 	board* new_board;
 
 	fp = fopen(path, "r");
@@ -125,46 +128,45 @@ int load_game_from_file(game* current_game,char* path){
 		return(-1);
 	}
 
-	c = fgetc(fp);
+	num_read = fscanf(fp, "%d", &new_m);
 
-	if(!isdigit(c)){
+	if(num_read != 1 || new_m == 0){
 		return(file_not_right_format(fp));
 	}
 
-	new_m = c - '0'; /*converts char to int*/
+	num_read = fscanf(fp, "%d", &new_n);
 
-	c = fgetc(fp);
-	if(!isdigit(c)){
+	if(num_read != 1 || new_n == 0){
 		return(file_not_right_format(fp));
 	}
 
-	new_n = c - '0'; /*converts char to int*/
 	new_board = create_board(new_n, new_m);
 
 	for(int i = 0; i < new_n*new_m; i++){
 		for(int j = 0; j < new_n*new_m; j++){
-			c = fgetc(fp);
-			while (c != ' ' || c != '\n' || c != '\r' || c != 't'){
-				if(!isdigit(c) || cell_in_right_format(new_n, new_m, c - '0')){
-					return(file_not_right_format(fp));
-				}
-				if(c == '.'){
-					new_board->board[i][j].is_fixed = 1;
-				}
-				new_board->board[i][j].value = c - '0';
+			num_read = fscanf(fp, "%d", &cell_value);
+			if(!cell_in_right_format(new_n, new_m, cell_value)){
+				return(file_not_right_format(fp));
+			}
+			new_board->board[i][j].value = cell_value;
+
+			num_read = fscanf(fp, "%c", &c);
+			if(c == '.'){
+				new_board->board[i][j].is_fixed = 1;
+			}
+			else if(c != ' ' || c != '\n' || c != '\r' || c != 't'){
+				new_board->board[i][j].is_fixed = 0;
+			}
+			else{
+				return(file_not_right_format(fp));
 			}
 		}
 	}
+
 	new_node = create_node(new_board);
 
-	if(new_node == NULL){
-		memory_alloc_problem();
-	}
+	list_push(current_game->undo_redo_list, new_node);
 
-	if(list_push(current_game->undo_redo_list, new_node) != true){
-		printf("Error: problem while pushing to list\n");
-		return -1;
-	}
 	return 0;
 }
 
@@ -285,5 +287,45 @@ void print_board(board* board_to_print, game* game){
 		}
 	}
 }
+
+board* copy_board(board* board_to_copy){
+	int n = board_to_copy->n;
+	int m = board_to_copy->m;
+	board* new_board = create_board(n, m);
+
+	for (int i = 0; i < n*m; i++){
+		for(int j = 0; j < n*m; j++){
+			new_board->board[i][j].is_error = board_to_copy->board[i][j].is_error;
+			new_board->board[i][j].is_fixed = board_to_copy->board[i][j].is_fixed;
+			new_board->board[i][j].value = board_to_copy->board[i][j].value;
+		}
+	}
+	return new_board;
+}
+
+bool board_is_full(board* board_to_check){
+	int N = board_to_check->n*board_to_check->m;
+	for (int i = 0; i < N; i++){
+		for(int j = 0; j < N; j++){
+			if(board_to_check->board[i][j].value == 0){
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+bool board_is_erroneous(board* board_to_check){
+	int N = board_to_check->n*board_to_check->m;
+	for (int i = 0; i < N; i++){
+		for(int j = 0; j < N; j++){
+			if(board_to_check->board[i][j].is_error == 1){
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 
 

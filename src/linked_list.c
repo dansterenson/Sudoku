@@ -6,15 +6,17 @@
  */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include "linked_list.h"
-
 
 
 Node* create_node(void* data){
 	Node* node;
 	node = (Node*) calloc(1, sizeof(Node));
-	if(node == NULL){
-		return NULL;
+	if(node == NULL){ /*problem allocating memory*/
+		printf("Error in allocating memory.\n");
+		fflush(stdout);
+		exit(EXIT_FAILURE);
 	}
 	else{
 		node->data = data;
@@ -39,12 +41,8 @@ bool list_is_empty(const list* list){
 	return false;
 }
 
-bool list_push(list* list, void* data){
+void list_push(list* list, void* data){
     Node* new_node = create_node(data);
-
-    if (new_node == NULL) {
-    	return false;
-    }
 
     if (!list_is_empty(list)) {
         list->head->prev = new_node;
@@ -56,7 +54,6 @@ bool list_push(list* list, void* data){
         list->tail = list->head;
     }
     list->size++;
-    return true;
 }
 
 void* list_pop(list* list){
@@ -108,15 +105,14 @@ void free_list_mem(list* list_to_free, void (*func_to_free_data)(void*)){
 	free(list_to_free);
 }
 
-const Node* get_head_of_list(const list* list) {
+Node* get_head_of_list(const list* list) {
     if (list == NULL || list_is_empty(list)) {
         return NULL;
     }
-
     return list->head;
 }
 
-const Node* get_tail_of_list(const list* list) {
+Node* get_tail_of_list(const list* list) {
     if (list == NULL || list_is_empty(list)) {
         return NULL;
     }

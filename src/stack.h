@@ -32,7 +32,7 @@ bool stack_is_empty(const Stack* stack);
 /*
  * Push a new item to the stack.
  */
-bool stack_push(Stack* stack, void* new_data);
+void stack_push(Stack* stack, void* new_data);
 
 /*
  * remove the top element from the stack.
@@ -46,8 +46,9 @@ int get_stack_size(Stack* stack);
 
 /*
  * gives the top element of the stack (does not pop it)
+ * returns NULL if stack is empty
  */
-const void* get_stack_top_element(const Stack* stack);
+void* get_stack_top_element(const Stack* stack);
 
 
 #endif /* STACK_H_ */

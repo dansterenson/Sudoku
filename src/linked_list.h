@@ -10,10 +10,11 @@
 
 #include <stdbool.h>
 
-
 /*
  * this module contains an implementation of a double linked list.
  */
+
+
 
  /*
  * element of the list, contains two pointers,
@@ -39,6 +40,11 @@ typedef struct list
     int size;
 } list;
 
+/*
+ * creates a node, initialize his fields
+ * returns the new node
+ * returns NULL if memory allocation problem occur;
+ */
 Node* create_node(void* data);
 
 /*
@@ -48,30 +54,48 @@ void init_list(list* list);
 
 /*
  * checks if list is empty
+ * returns true if the list is empty
+ * returns false otherwise
  */
 bool list_is_empty(const list* list);
+
 /*
- * insert item to list
+ * insert the provided item to list
+ * returns true in success.
  */
-bool list_push(list* list, void* data);
+void list_push(list* list, void* data);
+
 /*
- * removes node from list
+ * removes the node from the head of the list
+ * returns the removed node or NULL if list is empty.
  */
 void* list_pop(list* list);
 
 /*
- * removes node from list.
+ * returns the list's size
  */
 int get_list_size(list* list);
+
 /*
- * get the node's data.
+ * returns the node's data
  */
 void* get_node_data(const Node* node);
 
-const Node* get_head_of_list(const list* list);
+/*
+ * returns the node at the head of the list.
+ * return NULL if list is empty.
+ */
+Node* get_head_of_list(const list* list);
 
-const Node* get_tail_of_list(const list* list);
+/*
+ * returns the node at the tail of the list.
+ * return NULL if list is empty.
+ */
+Node* get_tail_of_list(const list* list);
 
+/*
+ * frees the list's memory.
+ */
 void free_list_mem(list* list_to_free, void (*func_to_free_data)(void*));
 
 #endif /* LINKED_LIST_H_ */

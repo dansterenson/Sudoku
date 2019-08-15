@@ -17,8 +17,8 @@ bool stack_is_empty(const Stack* stack){
 	return list_is_empty(stack);
 }
 
-bool stack_push(Stack* stack, void* new_data){
-	return list_push(stack, new_data);
+void stack_push(Stack* stack, void* new_data){
+	list_push(stack, new_data);
 }
 
 void* stack_pop(Stack* stack){
@@ -29,7 +29,7 @@ int get_stack_size(Stack* stack){
 	return get_list_size(stack);
 }
 
-const void* get_stack_top_element(const Stack* stack){
+void* get_stack_top_element(const Stack* stack){
 
 	if (stack_is_empty(stack)){
 		return NULL;
