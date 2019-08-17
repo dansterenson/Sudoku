@@ -7,11 +7,18 @@
 
 #ifndef GUROBI_STRUCTS_H_
 #define GUROBI_STRUCTS_H_
+
+#include <stdbool.h>
  /*
   * This module contains custom Structs used in Gurobi models (Both LP and ILP),
   * to store the relevant variables for Linear Programming calculations.
   * These Structs spare us from traversing the game board multiple times.
   */
+
+typedef enum {
+	ROW,
+	COLUMN
+} Constraints;
 
 /*
  * The Gurobi variable - x_ijk.
