@@ -181,7 +181,7 @@ int save_game_to_file(game* current_game, char* path){
 	fp = fopen(path, "w+");
 
 	if(fp == NULL){
-		print_flush("Error, was not able to open file");
+		print_flush("Error, was not able to open file\n");
 		return -1;
 	}
 
@@ -190,7 +190,7 @@ int save_game_to_file(game* current_game, char* path){
 	for(int i = 0; i < n*m; i++){
 		for(int j = 0; j < n*m; j++){
 			fprintf(fp, "%d",current_board->board[i][j].value);
-			/*in edit mode' every non empty cell is marked as fixed so needs a "."*/
+			/*in edit mode every non empty cell is marked as fixed so needs a "."*/
 			if(current_board->board[i][j].is_fixed == true
 					|| (current_game->mode == edit && current_board->board[i][j].value != 0)){
 				fprintf(fp, ".");
@@ -204,7 +204,7 @@ int save_game_to_file(game* current_game, char* path){
 	}
 
 	if(fclose(fp) != 0){
-		print_flush("Error, was not able to close file");
+		print_flush("Error, was not able to close file\n");
 		return -1;
 	}
 
@@ -327,5 +327,35 @@ bool board_is_erroneous(board* board_to_check){
 	return false;
 }
 
+int num_empty_cells(board* board_to_check){
+	int N = board_to_check->n*board_to_check->m;
+	int count;
+	for (int i = 0; i < N; i++){
+		for(int j = 0; j < N; j++){
+			if(board_to_check->board[i][j].value == 0){
+				count++;
+			}
+		}
+	}
+	return count;
+}
+
+bool check_atoi_error(char* param_name, int after_convert, char* before_convert, int N){
+	if(after_convert == 0 && strcmp(before_convert, "0") != 0){
+		printf("Error: parameter %s is invalid, should be a number in range 1 - %d\n", param_name, N);
+		fflush(stdout);
+		return true;
+	}
+	return false;
+}
+
+bool check_range(char* param, int num_to_check, int lower_bound, int upper_bound){
+	if(num_to_check < lower_bound || num_to_check > upper_bound){
+		printf("Error: parameter %s is not in range, should be in range %d - %d\n",param, lower_bound, upper_bound);
+		fflush(stdout);
+		return false;
+	}
+	return true;
+}
 
 

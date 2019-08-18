@@ -11,14 +11,6 @@
 #include <string.h>
 
 
-bool check_range(char* param, int num_to_check, int lower_bound, int upper_bound){
-	if(num_to_check < lower_bound || num_to_check > upper_bound){
-		printf("Error: parameter %s is not in range, should be in range %d - %d\n",param, lower_bound, upper_bound);
-		return false;
-	}
-	return true;
-}
-
 int handle_solve_command(game* current_game, char* path){
 	return load_game_from_file(current_game, path);
 }
@@ -47,21 +39,8 @@ int handle_set_command(game* current_game, char* parameters[3]){
 	int y = atoi(parameters[1]);
 	int z = atoi(parameters[2]);
 
-	if(x == 0 && strcmp(parameters[0], "0") != 0){ /*convert problem, not a number*/
-		printf("Error: parameter X is invalid, should be a number in range 1 - %d\n",N);
-		fflush(stdout);
-		return -1;
-	}
-
-	if(y == 0 && strcmp(parameters[1], "0") != 0){ /*convert problem, not a number*/
-		printf("Error: parameter Y is invalid, should be a number in range 1 - %d\n",N);
-		fflush(stdout);
-		return -1;
-	}
-
-	if(z == 0 && strcmp(parameters[2], "0") != 0){ /*convert problem, not a number*/
-		printf("Error: parameter Z is invalid, should be a number in range 1 - %d\n",N);
-		fflush(stdout);
+	if(check_atoi_error("X", x, parameters[0], N) || check_atoi_error("Y", y, parameters[1], N)
+			|| check_atoi_error("Z", z, parameters[2], N)){
 		return -1;
 	}
 
@@ -98,7 +77,6 @@ int handle_set_command(game* current_game, char* parameters[3]){
 }
 
 int handle_validate_command(game* current_game){
-	board* board = current_game.undo_redo_list.head.data
 	/*
 	 * return ILP_func(); //guy needs to write//
 	 */
@@ -106,10 +84,250 @@ int handle_validate_command(game* current_game){
 }
 
 int handle_guess_command(game* current_game, char* thresh){
+	board* current_board = current_game->undo_redo_list->head->data;
+	board* copy_of_board;
+
 	float threshold = atof(thresh);
 	if(threshold == 0.0 && !strcmp(thresh, "0")){
-		print_flush("Error: threshold X is invalid, should be a number\n");
+		print_flush("Error: threshold X is invalid, should be a number. format: guess X\n");
 		return -1;
 	}
 
+	if(threshold > 1.0 || threshold < 0.0){
+		print_flush("Error: threshold X is invalid, should be a number between 0 and 1. format: guess\n");
+		return -1;
+	}
+
+	if(board_is_erroneous(current_board)){
+		print_flush("board is erroneous");
+		return -1;
+	}
+
+	copy_of_board = copy_board(current_board);
+
+	/*
+	 * if (LP(copy_of_board, threshold) == 1){ // guy need to write
+	 *
+	 *
+	 */
+	return 0;
 }
+
+int handle_undo_command(game* current_game){
+	list* undo_redo_list = current_game->undo_redo_list;
+	board* board_before_undo = (board*)undo_redo_list->head->data;
+	board* board_after_undo = (board*)undo_redo_list->head->prev->data;
+	board* current_board = (board*)undo_redo_list->head->data;
+	int N = current_board->m*current_board->n;
+
+	/*
+	 * check if there is a undo move
+	 */
+
+	if(undo_redo_list->head->prev == NULL){
+		print_flush("Error, there are no moves to undo\n");
+		return -1;
+	}
+
+	for (int i = 0; i < N; i++){
+		for (int j = 0; j < N; j++){
+			if (board_before_undo->board[i][j].value != board_after_undo->board[i][j].value){
+				printf("Cell (%d, %d) was changed from value %d to value %d.\n", i + 1, j + 1, board_before_undo->board[i][j].value , board_after_undo->board[i][j].value);
+			}
+		}
+	}
+	undo_redo_list->head = undo_redo_list->head->prev;
+	print_board((board*)undo_redo_list->head->data, current_game);
+	return 0;
+}
+
+int handle_redo_command(game* current_game){
+	list* undo_redo_list = current_game->undo_redo_list;
+	board* board_before_redo = (board*)undo_redo_list->head->data;
+	board* board_after_redo = (board*)undo_redo_list->head->prev->data;
+	board* current_board = (board*)undo_redo_list->head->data;
+	int N = current_board->m*current_board->n;
+
+	/*
+	 * check if there is a undo move
+	 */
+
+	if(undo_redo_list->head->next == NULL){
+		print_flush("Error, there are no moves to redo\n");
+		return -1;
+	}
+
+	for (int i = 0; i < N; i++){
+		for (int j = 0; j < N; j++){
+			if (board_before_redo->board[i][j].value != board_after_redo->board[i][j].value){
+				printf("Cell (%d, %d) was changed from value %d to value %d.\n", i + 1, j + 1, board_before_redo->board[i][j].value , board_after_redo->board[i][j].value);
+			}
+		}
+	}
+	undo_redo_list->head = undo_redo_list->head->next;
+	print_board((board*)undo_redo_list->head->data, current_game);
+	return 0;
+}
+
+int handle_save_command(game* current_game, char* path){
+	board* current_board = (board*)current_game->undo_redo_list->head->data;
+
+	if(current_game->mode == edit){
+		if(board_is_erroneous(current_board)){
+			print_flush("Erroneous boards are not saved in edit mode\n");
+			return -1;
+		}
+		/*
+		 * in edit mode boards without a solution may not be saved.
+		 * if(validate(current_board) == false){
+		 * print_flush("unsolvable boards are not saved in edit mode\n");
+		 * return -1;
+		 */
+	}
+	return save_game_to_file(current_game, path);
+}
+
+int handle_hint_command(game* current_game, char* cells[3]){
+	int x, y;
+	board* current_board = current_game->undo_redo_list->head->data;
+	board* copy_of_board;
+	int N = current_board->m*current_board->n;
+
+	x = atoi(cells[0]);
+	y = atoi(cells[1]);
+
+	if(check_atoi_error("X", x, cells[0], N) || check_atoi_error("Y", y, cells[1], N)){
+		return -1;
+	}
+
+	if(!check_range("X", x, 1, N) || !check_range("Y", y, 1, N)){
+		return -1;
+	}
+
+	if(board_is_erroneous(current_board) == true){
+		print_flush("Error: board is erroneous\n");
+		return -1;
+	}
+
+	if(current_board->board[y-1][x-1].is_fixed == 1){
+		print_flush("Error: the provided cell is fixed\n");
+		return -1;
+	}
+
+	if(current_board->board[y-1][x-1].value != 0){
+		print_flush("Error: the provided cell contains a value already\n");
+		return -1;
+	}
+
+	copy_of_board = copy_board(current_board);
+
+	/*
+	 * if(ILP(copy_board(current_board))){
+	 * 	printf("hint: the value of cell (%d,%d) is %d\n", x, y, copy_board->board[y-1][x-1].value)
+	 * 	fflush(stdout):
+	 * 	free_board_mem(copy_board);
+	 * 	return 0;
+	 *
+	 * else{
+	 * 	print_flush("The board is unsolvable\n");
+	 *
+	 */
+
+	free_board_mem(copy_board);
+	return 0;
+}
+
+int handle_guess_hint_command(game* current_game, char* cells[3]){
+	int x, y;
+	board* current_board = current_game->undo_redo_list->head->data;
+	board* copy_of_board;
+	int N = current_board->m*current_board->n;
+
+	x = atoi(cells[0]);
+	y = atoi(cells[1]);
+
+	if(check_atoi_error("X", x, cells[0], N) || check_atoi_error("Y", y, cells[1], N)){
+		return -1;
+	}
+
+	if(!check_range("X", x, 1, N) || !check_range("Y", y, 1, N)){
+		return -1;
+	}
+
+	if(board_is_erroneous(current_board) == true){
+		print_flush("Error: board is erroneous\n");
+		return -1;
+	}
+
+	if(current_board->board[y-1][x-1].is_fixed == 1){
+		print_flush("Error: the provided cell is fixed\n");
+		return -1;
+	}
+
+	if(current_board->board[y-1][x-1].value != 0){
+		print_flush("Error: the provided cell contains a value already\n");
+		return -1;
+	}
+
+	copy_of_board = copy_board(current_board);
+
+	/*
+	 * if(LP(copy_board(current_board))){
+	 * 	printf("hint: the value of cell (%d,%d) is %d\n", x, y, copy_board->board[y-1][x-1].value)
+	 * 	fflush(stdout):
+	 * 	free_board_mem(copy_board);
+	 * 	return 0;
+	 *
+	 * else{
+	 * 	print_flush("The board is unsolvable\n");
+	 *
+	 */
+
+	free_board_mem(copy_board);
+	return 0;
+}
+
+int handle_num_solution_command(game* current_game){
+	board* current_board = current_game->undo_redo_list->head->data;
+	int counts;
+
+	if(board_is_erroneous(current_board) == true){
+		print_flush("Error: board is erroneous\n");
+		return -1;
+	}
+	/*
+	 * counts = exhaustive_backtracking(current_board);
+	 * printf("The number of found solutions is %d\n, count);
+	 * fflush(stdout);
+	 */
+	return 0;
+}
+
+int handle_autofill_command(game* current_game){
+	board* current_board = current_game->undo_redo_list->head->data;
+	int N = current_board->m*current_board->n;
+
+	if(board_is_erroneous(current_board) == true){
+		print_flush("Error: board is erroneous\n");
+		return -1;
+	}
+
+	/*
+	 * ...
+	 */
+	return 0;
+}
+
+void handle_reset_command(game* current_game){
+	list* undo_redo_list = current_game->undo_redo_list;
+
+	while(undo_redo_list->head->prev != NULL){
+		undo_redo_list->head = undo_redo_list->head->prev;
+	}
+}
+
+
+
+
+
+

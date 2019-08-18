@@ -80,6 +80,9 @@ void free_board_mem(void* board_to_free);
  */
 void free_game_mem(game* game);
 
+/*
+ * prints a separating line.
+ */
 void print_separating_line(int n, int m);
 
 /*
@@ -104,7 +107,25 @@ bool board_is_full(board* board_to_check);
  */
 bool board_is_erroneous(board* board_to_check);
 
+/*
+ * counts the number of empty cells in a given board.
+ * returns the number of empty cells.
+ */
+int num_empty_cells(board* board_to_check);
 
+/*
+ * checks is a converted number was originally zero or the atoi function had a problem
+ * returns true if the atoi function had a problem and prints an error message.
+ * otherwise returns false.
+ */
+bool check_atoi_error(char* param_name, int after_convert, char* before_convert, int N);
+
+/*
+ * checks whether a given number is between given lower bound and upper bound.
+ * returns error if not and prints an error message.
+ * otherwise returns true.
+ */
+bool check_range(char* param, int num_to_check, int lower_bound, int upper_bound);
 
 
 #endif /* MAIN_AUX_H_ */
