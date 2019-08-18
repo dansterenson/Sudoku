@@ -6,7 +6,7 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
-#include "structs.h"
+#include "gurobi_structs.h"
 #include "gurobi_helper_utils.h"
 #include "gurobi_c.h"
 
@@ -15,51 +15,48 @@ int gurobi_main_ILP(Board* gameBoard, int should_fill_values)
 {
   GRBenv   *env   = NULL;
   GRBmodel *model = NULL;
-  int       error = 0;
+  int       error_occured = false;
   double*    sol;
   char*      vtype;
   int       optimstatus;
-  GRB_vars* vars_ptr;
+  GRB_vars* vars;
   int       i;
 
   /* Create environment and a log file for the game log */
-  error = GRBloadenv(&env, "game_log.log");
-  if (error) {
-	  printf("ERROR %d GRBloadenv(): %s\n", error, GRBgeterrormsg(env));
-	  printf("GUROBI ERROR.\n");
+  error_occured = GRBloadenv(&env, "game_log.log");
+  if (error_occured) {
+	  printf("ERROR %d GRBloadenv(): %s\n", error_occured, GRBgeterrormsg(env));
+	  printf("GUROBI RELATED ERROR OCCURED.\n");
 	  fflush(stdout);
-	  GRBfreemodel(model);
+//	  GRBfreeenv(env);
+	  return -1;
+  }
+
+  /* disable log to console */
+  error_occured = GRBsetintparam(env, GRB_INT_PAR_LOGTOCONSOLE, 0);
+  if (error_occured) {
+	  printf("ERROR %d GRBsetintattr(): %s\n", error_occured, GRBgeterrormsg(env));
+	  printf("GUROBI RELATED ERROR OCCURED.\n");
+	  fflush(stdout);
 	  GRBfreeenv(env);
 	  return -1;
   }
 
-  /* cancel printing */
-  error = GRBsetintparam(env, GRB_INT_PAR_LOGTOCONSOLE, 0);
-  if (error) {
-	  printf("ERROR %d GRBsetintattr(): %s\n", error, GRBgeterrormsg(env));
-	  printf("GUROBI ERROR.\n");
+  /* Create an empty model for the game named "sudoku" */
+  error_occured = GRBnewmodel(env, &model, "sudoku", 0, NULL, NULL, NULL, NULL, NULL);
+  if (error_occured) {
+	  printf("ERROR %d GRBnewmodel(): %s\n", error_occured, GRBgeterrormsg(env));
+	  printf("GUROBI RELATED ERROR OCCURED.\n");
 	  fflush(stdout);
-	  GRBfreemodel(model);
+//	  GRBfreemodel(model);
 	  GRBfreeenv(env);
 	  return -1;
   }
 
-  /* Create an empty model named "sudoku" */
-  error = GRBnewmodel(env, &model, "sudoku", 0, NULL, NULL, NULL, NULL, NULL);
-  if (error) {
-	  printf("ERROR %d GRBnewmodel(): %s\n", error, GRBgeterrormsg(env));
-	  printf("GUROBI ERROR.\n");
-	  fflush(stdout);
-	  GRBfreemodel(model);
-	  GRBfreeenv(env);
-	  return -1;
-  }
+  vars = get_grb_vars(board);
 
-
-  vars_ptr = get_variables(board);
-
-  /* no vars created - no possible solutions */
-  if (vars_ptr->amount == 0) {
+  /* no vars created - that means there are no possible solutions */
+  if (vars->var_count == 0) {
 	  GRBfreemodel(model);
 	  GRBfreeenv(env);
 	  release_gurobi_vars_memory(vars_ptr);
@@ -76,9 +73,9 @@ int gurobi_main_ILP(Board* gameBoard, int should_fill_values)
   }
 
   /* add variables to model */
-  error = GRBaddvars(model, vars_ptr->amount, 0, NULL, NULL, NULL, NULL, NULL, NULL, vtype, NULL);
-  if (error) {
-	  printf("ERROR %d GRBaddvars(): %s\n", error, GRBgeterrormsg(env));
+  error_occured = GRBaddvars(model, vars_ptr->amount, 0, NULL, NULL, NULL, NULL, NULL, NULL, vtype, NULL);
+  if (error_occured) {
+	  printf("ERROR %d GRBaddvars(): %s\n", error_occured, GRBgeterrormsg(env));
 	  printf("GUROBI ERROR.\n");
 	  fflush(stdout);
 	  GRBfreemodel(model);
@@ -89,9 +86,9 @@ int gurobi_main_ILP(Board* gameBoard, int should_fill_values)
   }
 
   /* Set an arbitrary objective to MAX, we just want a feasible solution. */
-  error = GRBsetintattr(model, GRB_INT_ATTR_MODELSENSE, GRB_MAXIMIZE);
-  if (error) {
-	  printf("ERROR %d GRBsetintattr(): %s\n", error, GRBgeterrormsg(env));
+  error_occured = GRBsetintattr(model, GRB_INT_ATTR_MODELSENSE, GRB_MAXIMIZE);
+  if (error_occured) {
+	  printf("ERROR %d GRBsetintattr(): %s\n", error_occured, GRBgeterrormsg(env));
 	  printf("GUROBI ERROR.\n");
 	  fflush(stdout);
 	  GRBfreemodel(model);
@@ -103,9 +100,9 @@ int gurobi_main_ILP(Board* gameBoard, int should_fill_values)
 
   /* update the model - to integrate new variables */
 
-  error = GRBupdatemodel(model);
-  if (error) {
-	  printf("ERROR %d GRBupdatemodel(): %s\n", error, GRBgeterrormsg(env));
+  error_occured = GRBupdatemodel(model);
+  if (error_occured) {
+	  printf("ERROR %d GRBupdatemodel(): %s\n", error_occured, GRBgeterrormsg(env));
 	  printf("GUROBI ERROR.\n");
 	  fflush(stdout);
 	  GRBfreemodel(model);
@@ -115,8 +112,8 @@ int gurobi_main_ILP(Board* gameBoard, int should_fill_values)
 	  return -1;
   }
 
-  error = add_cell_single_value_constraints(model, vars_ptr);
-  if (error == -1) {
+  error_occured = add_cell_single_value_constraints(model, vars_ptr);
+  if (error_occured == -1) {
 	  GRBfreemodel(model);
 	  GRBfreeenv(env);
 	  release_gurobi_vars_memory(vars_ptr);
@@ -125,8 +122,8 @@ int gurobi_main_ILP(Board* gameBoard, int should_fill_values)
 
   }
 
-  error = add_row_constraints(model, vars_ptr, board);
-  if (error == -1) {
+  error_occured = add_row_constraints(model, vars_ptr, board);
+  if (error_occured == -1) {
 	  GRBfreemodel(model);
 	  GRBfreeenv(env);
 	  release_gurobi_vars_memory(vars_ptr);
@@ -134,8 +131,8 @@ int gurobi_main_ILP(Board* gameBoard, int should_fill_values)
 	  return -1;
   }
 
-  error = add_col_constraints(model, vars_ptr, board);
-  if (error == -1) {
+  error_occured = add_col_constraints(model, vars_ptr, board);
+  if (error_occured == -1) {
 	  GRBfreemodel(model);
 	  GRBfreeenv(env);
 	  release_gurobi_vars_memory(vars_ptr);
@@ -144,8 +141,8 @@ int gurobi_main_ILP(Board* gameBoard, int should_fill_values)
   }
 
 
-  error = add_block_constraints(model, vars_ptr, board);
-  if (error == -1) {
+  error_occured = add_block_constraints(model, vars_ptr, board);
+  if (error_occured == -1) {
 	  GRBfreemodel(model);
 	  GRBfreeenv(env);
 	  release_gurobi_vars_memory(vars_ptr);
@@ -156,9 +153,9 @@ int gurobi_main_ILP(Board* gameBoard, int should_fill_values)
 
 
   /* Optimize model - need to call this before calculation */
-  error = GRBoptimize(model);
-  if (error) {
-	  printf("ERROR %d GRBoptimize(): %s\n", error, GRBgeterrormsg(env));
+  error_occured = GRBoptimize(model);
+  if (error_occured) {
+	  printf("ERROR %d GRBoptimize(): %s\n", error_occured, GRBgeterrormsg(env));
 	  GRBfreemodel(model);
 	  GRBfreeenv(env);
 	  release_gurobi_vars_memory(vars_ptr);
@@ -166,9 +163,9 @@ int gurobi_main_ILP(Board* gameBoard, int should_fill_values)
 	  return -1;
   }
 
-  error = GRBwrite(model, "sudoku.lp");
-  if (error) {
-	  printf("ERROR %d GRBwrite(): %s\n", error, GRBgeterrormsg(env));
+  error_occured = GRBwrite(model, "sudoku.lp");
+  if (error_occured) {
+	  printf("ERROR %d GRBwrite(): %s\n", error_occured, GRBgeterrormsg(env));
 	  GRBfreemodel(model);
 	  GRBfreeenv(env);
 	  release_gurobi_vars_memory(vars_ptr);
@@ -178,9 +175,9 @@ int gurobi_main_ILP(Board* gameBoard, int should_fill_values)
 
 
   /* Get solution information */
-  error = GRBgetintattr(model, GRB_INT_ATTR_STATUS, &optimstatus);
-   if (error) {
- 	  printf("ERROR %d GRBgetintattr(): %s\n", error, GRBgeterrormsg(env));
+  error_occured = GRBgetintattr(model, GRB_INT_ATTR_STATUS, &optimstatus);
+   if (error_occured) {
+ 	  printf("ERROR %d GRBgetintattr(): %s\n", error_occured, GRBgeterrormsg(env));
 	  GRBfreemodel(model);
 	  GRBfreeenv(env);
 	  release_gurobi_vars_memory(vars_ptr);
@@ -198,9 +195,9 @@ int gurobi_main_ILP(Board* gameBoard, int should_fill_values)
 			 exit(1);
 		  }
 		   /* get the solution - the assignment to each variable */
-		   error = GRBgetdblattrarray(model, GRB_DBL_ATTR_X, 0, vars_ptr->amount, sol);
-		   if (error) {
-			  printf("ERROR %d GRBgetdblattrarray(): %s\n", error, GRBgeterrormsg(env));
+		  error_occured = GRBgetdblattrarray(model, GRB_DBL_ATTR_X, 0, vars_ptr->amount, sol);
+		   if (error_occured) {
+			  printf("ERROR %d GRBgetdblattrarray(): %s\n", error_occured, GRBgeterrormsg(env));
 			  GRBfreemodel(model);
 			  GRBfreeenv(env);
 			  release_gurobi_vars_memory(vars_ptr);
