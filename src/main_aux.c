@@ -105,7 +105,7 @@ bool cell_in_right_format(int n, int m, int cell){
 }
 
 int file_not_right_format(FILE *fp){
-	print_flush("Error, file is not in the right format");
+	print_flush("Error, file is not in the right format\n");
 	if(fclose(fp) != 0){
 		print_flush("Error, was not able to close file");
 	}
@@ -114,7 +114,6 @@ int file_not_right_format(FILE *fp){
 
 int load_game_from_file(game* current_game, char* path){
 	FILE *fp;
-	Node* new_node;
 	char c;
 	int cell_value;
 	int new_m, new_n;
@@ -124,7 +123,7 @@ int load_game_from_file(game* current_game, char* path){
 	fp = fopen(path, "r");
 
 	if(fp == NULL){
-		print_flush("Error, was not able to open file");
+		print_flush("Error, was not able to open file\n");
 		return(-1);
 	}
 
@@ -163,9 +162,7 @@ int load_game_from_file(game* current_game, char* path){
 		}
 	}
 
-	new_node = create_node(new_board);
-
-	list_push(current_game->undo_redo_list, new_node);
+	list_push(current_game->undo_redo_list, new_board);
 
 	return 0;
 }
@@ -277,7 +274,7 @@ void print_board(board* board_to_print, game* game){
 					printf("|");
 				}
 				else{
-					printf(" |\n");
+					printf("|\n");
 				}
 			}
 		}
