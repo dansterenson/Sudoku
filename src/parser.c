@@ -13,14 +13,6 @@
 #include "commands.h"
 #include <string.h>
 
-bool check_param_missing(char* command, char* next_param, char* format){
-	if(next_param == NULL){
-		printf("Error: some parameters are missing in %s command, right format: %s.\n", command, format);
-		fflush(stdout);
-		return true;
-	}
-	return false;
-}
 
 bool check_in_right_mode(game_modes right_mode, game* current_game){
 	if(current_game->mode != right_mode){
@@ -29,62 +21,65 @@ bool check_in_right_mode(game_modes right_mode, game* current_game){
 	return true;
 }
 
-bool too_many_param(char* command, char*next_param, char* format){
-	if(next_param != NULL){
-		printf("Error: there are too many parameters, right format: %s %s.\n", command, format);
-		fflush(stdout);
-		return true;
+
+int check_call_func(game* current_game, char* command_name, int number_of_params,
+		char* format, int (*handle_func)(game* , char**)){
+
+	char* parameters[MAX_PARAMETERS];
+	char* too_many;
+	char delimitor[8] = " \t\r\n";
+
+	for(int i = 0; i < number_of_params; i++){
+		parameters[i] = strtok(NULL, delimitor);
+		if(parameters[i] == NULL){
+			printf("Error: some parameters are missing in %s command, right format: %s.\n", command_name, format);
+			fflush(stdout);
+			return -1;
+		}
 	}
-	return false;
+
+	too_many = strtok(NULL, delimitor);
+	if(too_many != NULL){
+		printf("Error: there are too many parameters, right format: %s.\n", format);
+		fflush(stdout);
+		return -1;
+	}
+
+	return handle_func(current_game, parameters);
 }
 
 int command_parser(char* command, game* current_game){
 	char delimitor[8] = " \t\r\n";
 	char* command_name;
-	char* path;
-	char* parameters[3];
-	char* too_many;
-	game_modes previous_mode = current_game->mode;
+	int return_value;
 
-	command_name = strtok(command, delimitor);
+	command_name = strtok(command, delimitor); /*get the command name*/
 
 	if(command_name == NULL){ /*empty command*/
 		return 0;
 	}
 
-
 	/*-------------------------------solve command------------------------------*/
 	else if(strcmp(command_name, "solve") == 0){
+		game_modes previous_mode = current_game->mode;
 
-		path = strtok(NULL, delimitor);
-		if(check_param_missing("solve", path, "solve <file_path>") == true){
-			return 0;
-		}
+		return_value = check_call_func(current_game, "solve", SOLVE_NUM_PARAMS, "solve <file_path>", handle_solve_command);
 
-		too_many = strtok(NULL, delimitor);
-		if(too_many_param("solve", too_many, "solve <file_path>") == true){
-			return 0;
-		}
-
-		current_game->mode = solve;
-		if(handle_solve_command(current_game, path) < 0){
+		if(return_value < 0){
 			current_game->mode = previous_mode;
 		}
 		else{
 			print_board((board*)current_game->undo_redo_list->head->data, current_game);
 		}
 	}
-
 
 	/*-------------------------------edit command------------------------------*/
 	else if(strcmp(command_name, "edit") == 0){
-		path = strtok(NULL, delimitor);
-		current_game->mode = edit;
-		too_many = strtok(NULL, delimitor);
-		if(too_many_param("edit", too_many, "edit [optional] <file_path>") == true){
-			return 0;
-		}
-		if(handle_edit_command(current_game, path) < 0){
+		game_modes previous_mode = current_game->mode;
+
+		return_value = check_call_func(current_game, "edit", edit_NUM_PARAMS, "edit [optional] <file_path>", handle_edit_command);
+
+		if(return_value < 0){
 			current_game->mode = previous_mode;
 		}
 		else{
@@ -92,52 +87,29 @@ int command_parser(char* command, game* current_game){
 		}
 	}
 
-
 	/*-------------------------------mark errors command------------------------------*/
 	else if(strcmp(command_name, "mark_errors") == 0){
+
 		if(check_in_right_mode(solve, current_game) == false){/*not in the right mode*/
 			print_flush("Error: this command is only available in solve mode\n");
 			return 0;
 		}
 
-		parameters[0] = strtok(NULL, delimitor);
-		if (check_param_missing("mark_errors", parameters[0], "mark_errors X[0 or 1]") == true){
-			return 0;
-		}
+		return_value = check_call_func(current_game, "mark_errors", MARK_ERRORS_NUM_PARAMS, "mark_errors X[0 or 1]", handle_mark_errors_command);
 
-		too_many = strtok(NULL, delimitor);
-		if (too_many_param("mark_errors", too_many, "mark_errors X[0 or 1]") == true){
-			return 0;
-		}
-
-		if(strcmp(parameters[0], "0") == 0){
-			current_game->is_mark_errors = 0;
-		}
-
-		else if(strcmp(parameters[0], "1") == 0){
-			current_game->is_mark_errors = 1;
-		}
-		else{
-			print_flush("Error: parameter is invalid, mark_errors X[0 or 1]\n");
-		}
 	}
-
 
 	/*-------------------------------print board command------------------------------*/
 	else if(strcmp(command_name, "print_board") == 0){
+
 		if(check_in_right_mode(solve, current_game) == false &&
 				check_in_right_mode(edit ,current_game) == false){
 			print_flush("Error: this command is only available in solve mode or edit mode\n");
 		}
 
-		too_many = strtok(NULL, delimitor);
+		return_value = check_call_func(current_game, "print_board", PRINT_BOARD_NUM_PARAMS, "print_board", handle_print_board_command);
 
-		if (too_many_param("print_board", too_many, "print_board") == true){
-			return 0;
-		}
-		print_board((board*)current_game->undo_redo_list->head->data, current_game);
 	}
-
 
 	/*-------------------------------set command------------------------------*/
 	else if(strcmp(command_name, "set") == 0){
@@ -147,20 +119,8 @@ int command_parser(char* command, game* current_game){
 			print_flush("Error: this command is only available in solve mode or edit mode\n");
 		}
 
-		for(int i = 0; i < 3; i++){
-			parameters[i] = strtok(NULL, delimitor);
-			if(check_param_missing("set", parameters[i], "set X Y Z") == true){
-				return 0;
-			}
-		}
-
-		too_many = strtok(NULL, delimitor);
-
-		if (too_many_param("set", too_many, "set X Y Z") == true){
-			return 0;
-		}
-
-		if (handle_set_command(current_game, parameters) < 0){
+		return_value = check_call_func(current_game, "set", SET_NUM_PARAMS, "set X Y Z", handle_set_command);
+		if(return_value < 0){
 			return 0;
 		}
 	}
@@ -172,26 +132,12 @@ int command_parser(char* command, game* current_game){
 				check_in_right_mode(edit ,current_game) == false){
 			print_flush("Error: this command is only available in solve mode or edit mode\n");
 		}
-		too_many = strtok(NULL, delimitor);
+		return_value = check_call_func(current_game, "validate", VALIDATE_NUM_PARAMS, "validate", handle_validate_command);
 
-		if (too_many_param("validate", too_many, "validate") == true){
-			return 0;
-		}
-
-		if(board_is_erroneous((board*)current_game->undo_redo_list->head->data) == true){
-			print_flush("Error: the board is erroneous\n");
-		}
-
-		if(handle_validate_command(current_game) < 0){
-			print_flush("The board is unsolvable!\n");
-			return 0;
-		}
-		else{
-			print_flush("The board is solvable!\n");
+		if(return_value < 0){
 			return 0;
 		}
 	}
-
 
 	/*-------------------------------guess command------------------------------*/
 //	else if(strcmp(command_name, "guess") == 0){
@@ -200,23 +146,12 @@ int command_parser(char* command, game* current_game){
 //			return 0;
 //		}
 //
-//		parameters[0] = strtok(NULL, delimitor);
-//		if (check_param_missing("guess", parameters[0], "guess X") == true){
+//		return_value = check_call_func(current_game, "guess", GUESS_NUM_PARAMS, "guess X", handle_guess_command);
+//
+//		if(return_value < 0){
 //			return 0;
-//		}
-//
-//
-//		too_many = strtok(NULL, delimitor);
-//		if (too_many_param("guess", too_many, "guess X") == true){
-//			return 0;
-//		}
-//
-//
-//		if(handle_guess_command(current_game, parameters[0]) < 0){
-//
 //		}
 //	}
-
 
 	/*-------------------------------generate command------------------------------*/
 	else if(strcmp(command_name, "generate") == 0){
@@ -224,28 +159,12 @@ int command_parser(char* command, game* current_game){
 			print_flush("Error: this command is only available in edit mode\n");
 			return 0;
 		}
+		return_value = check_call_func(current_game, "generate", GENERATE_NUM_PARAMS, "generate X Y", handle_generate_command);
 
-		for(int i = 0; i < 2; i++){
-			parameters[i] = strtok(NULL, delimitor);
-
-			if (check_param_missing("generate", parameters[i], "generate X Y") == true){
-				return 0;
-			}
-		}
-
-		too_many = strtok(NULL, delimitor);
-		if (too_many_param("generate", too_many, "generate X Y") == true){
+		if(return_value < 0){
 			return 0;
 		}
-
-		if(num_empty_cells((board*)current_game->undo_redo_list->head->data) != atoi(parameters[0])){
-			printf("Error: the board does not contain %s empty cells.\n", parameters[0]);
-			fflush(stdout);
-			return 0;
-		}
-
 	}
-
 
 	/*-------------------------------undo command------------------------------*/
 	else if(strcmp(command_name, "undo") == 0){
@@ -255,18 +174,12 @@ int command_parser(char* command, game* current_game){
 			return 0;
 		}
 
-		too_many = strtok(NULL, delimitor);
+		return_value = check_call_func(current_game, "undo", UNDO_NUM_PARAMS, "undo", handle_undo_command);
 
-		if (too_many_param("undo", too_many, "undo") == true){
+		if(return_value < 0){
 			return 0;
 		}
-
-		if(handle_undo_command(current_game) < 0){
-			return 0;
-		}
-		return 0;
 	}
-
 
 	/*-------------------------------redo command------------------------------*/
 	else if(strcmp(command_name, "redo") == 0){
@@ -276,18 +189,12 @@ int command_parser(char* command, game* current_game){
 			return 0;
 		}
 
-		too_many = strtok(NULL, delimitor);
+		return_value = check_call_func(current_game, "redo", REDO_NUM_PARAMS, "redo", handle_redo_command);
 
-		if (too_many_param("undo", too_many, "undo") == true){
+		if(return_value < 0){
 			return 0;
 		}
-
-		if(handle_redo_command(current_game) < 0){
-			return 0;
-		}
-		return 0;
 	}
-
 
 	/*-------------------------------save command------------------------------*/
 	else if(strcmp(command_name, "save") == 0){
@@ -297,19 +204,11 @@ int command_parser(char* command, game* current_game){
 			return 0;
 		}
 
-		parameters[0] = strtok(NULL, delimitor);
-		if (check_param_missing("save", parameters[0], "save X") == true){
-			return 0;
-		}
-		too_many = strtok(NULL, delimitor);
-		if (too_many_param("save", too_many, "save X") == true){
-			return 0;
-		}
+		return_value = check_call_func(current_game, "save", SAVE_NUM_PARAMS, "save X", handle_save_command);
 
-		if(handle_save_command(current_game, parameters[0]) < 0){
+		if(return_value < 0){
 			return 0;
 		}
-		return 0;
 	}
 
 
@@ -320,23 +219,12 @@ int command_parser(char* command, game* current_game){
 //			return 0;
 //		}
 //
-//		for(int i = 0; i < 2; i++){
-//			parameters[i] = strtok(NULL, delimitor);
-//			if (check_param_missing("hint", parameters[i], "hint X Y") == true){
-//				return 0;
-//			}
-//		}
+//		return_value = check_call_func(current_game, "hint", HINT_NUM_PARAMS, "hint X Y", handle_hint_command);
 //
-//		too_many = strtok(NULL, delimitor);
-//		if (too_many_param("hint", too_many, "hint X Y") == true){
+//		if(return_value < 0){
 //			return 0;
 //		}
-//		if(handle_hint_command(current_game, parameters[3]) < 0){
-//			return 0;
-//		}
-//		return 0;
 //	}
-
 
 	/*-------------------------------guess_hint command------------------------------*/
 //	else if(strcmp(command_name, "guess_hint") == 0){
@@ -351,18 +239,12 @@ int command_parser(char* command, game* current_game){
 //				return 0;
 //			}
 //		}
+//		return_value = check_call_func(current_game, "guess_hint", GUESS_HINT_NUM_PARAMS, "guess_hint X Y", handle_guess_hint_command);
 //
-//		too_many = strtok(NULL, delimitor);
-//		if (too_many_param("guess_hint", too_many, "guess_hint X Y") == true){
+//		if(return_value < 0){
 //			return 0;
 //		}
-//
-//		if(handle_guess_hint_command(current_game, parameters[3]) < 0){
-//			return 0;
-//		}
-//		return 0;
 //	}
-
 
 	/*-------------------------------num_solutions command------------------------------*/
 //	else if(strcmp(command_name, "num_solutions") == 0){
@@ -371,16 +253,11 @@ int command_parser(char* command, game* current_game){
 //			print_flush("Error: this command is only available in solve mode or edit mode\n");
 //			return 0;
 //		}
+//		return_value = check_call_func(current_game, "num_solutions", NUM_SOLUTIONS_NUM_PARAMS, "num_solutions", handle_num_solutions_command);
 //
-//		too_many = strtok(NULL, delimitor);
-//		if (too_many_param("num_solutions", too_many, "num_solutions") == true){
+//		if(return_value < 0){
 //			return 0;
 //		}
-//
-//		if(handle_num_solution_command(current_game) < 0){
-//			return 0;
-//		}
-//		return 0;
 //	}
 
 
@@ -391,16 +268,11 @@ int command_parser(char* command, game* current_game){
 //			return 0;
 //		}
 //
-//		too_many = strtok(NULL, delimitor);
-//		if (too_many_param("autofill", too_many, "autofill") == true){
+//		return_value = check_call_func(current_game, "autofill", AUTOFILL_NUM_PARAMS, "autofill", handle_autofill_command);
+//
+//		if(return_value < 0){
 //			return 0;
 //		}
-//
-//		if(handle_autofill_command(current_game) < 0){
-//			return 0;
-//		}
-//
-//		return 0;
 //	}
 
 
@@ -412,25 +284,21 @@ int command_parser(char* command, game* current_game){
 			return 0;
 		}
 
-		too_many = strtok(NULL, delimitor);
-		if (too_many_param("reset", too_many, "reset") == true){
+		return_value = check_call_func(current_game, "reset", RESET_NUM_PARAMS, "reset", handle_reset_command);
+
+		if(return_value < 0){
 			return 0;
 		}
-
-		handle_reset_command(current_game);
-		return 0;
 	}
-
 
 	/*-------------------------------exit command------------------------------*/
 	else if(strcmp(command_name, "exit") == 0){
-		too_many = strtok(NULL, delimitor);
-		if (too_many_param("reset", too_many, "reset") == true){
-			return 0;
-		}
 
-		free_game_mem(current_game);
-		return -1;
+		return_value = check_call_func(current_game, "exit", EXIT_NUM_PARAMS, "exit", handle_exit_command);
+
+		if(return_value < 0){
+			return -1;
+		}
 	}
 
 

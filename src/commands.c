@@ -11,16 +11,18 @@
 #include <string.h>
 
 
-int handle_solve_command(game* current_game, char* path){
-	return load_game_from_file(current_game, path);
+int handle_solve_command(game* current_game, char* parameters[MAX_PARAMETERS]){
+	current_game->mode = solve;
+	return load_game_from_file(current_game, parameters[0]);
 }
 
-int handle_edit_command(game* current_game, char* path){
+int handle_edit_command(game* current_game, char* parameters[MAX_PARAMETERS]){
 	board* new_board;
 	Node* new_node;
+	current_game->mode = edit;
 
-	if(path != NULL){ /*there is a path (optional parameter)*/
-		return load_game_from_file(current_game, path);
+	if(parameters[0] != NULL){ /*there is a path (optional parameter)*/
+		return load_game_from_file(current_game, parameters[0]);
 	}
 	else{
 		new_board = create_board(3, 3);
@@ -30,7 +32,26 @@ int handle_edit_command(game* current_game, char* path){
 	return 0;
 }
 
-int handle_set_command(game* current_game, char* parameters[3]){
+int handle_mark_errors_command(game* current_game, char* parameters[MAX_PARAMETERS]){
+	if(strcmp(parameters[0], "0") == 0){
+		current_game->is_mark_errors = 0;
+	}
+
+	else if(strcmp(parameters[0], "1") == 0){
+		current_game->is_mark_errors = 1;
+	}
+	else{
+		print_flush("Error: parameter is invalid, mark_errors X[0 or 1]\n");
+	}
+	return 0;
+}
+
+int handle_print_board_command(game* current_game, char* parameters[MAX_PARAMETERS]){
+	print_board((board*)current_game->undo_redo_list->head->data, current_game);
+	return 0;
+}
+
+int handle_set_command(game* current_game, char* parameters[MAX_PARAMETERS]){
 	board* current_board = current_game->undo_redo_list->head->data;
 	board* copy_of_board;
 	int N = current_board->m*current_board->n;
@@ -76,16 +97,34 @@ int handle_set_command(game* current_game, char* parameters[3]){
 	return 0;
 }
 
-int handle_validate_command(game* current_game){
+int handle_validate_command(game* current_game, char* parameters[MAX_PARAMETERS]){
+	if(board_is_erroneous((board*)current_game->undo_redo_list->head->data) == true){
+		print_flush("Error: the board is erroneous\n");
+		return -2;
+	}
 	/*
-	 * return ILP_func(); //guy needs to write//
+	 * if(!return ILP_func()){
+			print_flush("The board is unsolvable!\n");
+			return 0;
+		else{
+		print_flush("The board is solvable!\n");
+		return 0;
+		} //guy needs to write//
 	 */
 	return 0;
 }
 
-//int handle_guess_command(game* current_game, char* thresh){
+//int handle_guess_command(game* current_game, parameters[MAX_PARAMETERS]){
 //	board* current_board = current_game->undo_redo_list->head->data;
 //	board* copy_of_board;
+//	char* thresh = parameters[0];
+//
+//	if(num_empty_cells((board*)current_game->undo_redo_list->head->data) != atoi(parameters[0])){
+//		printf("Error: the board does not contain %s empty cells.\n", parameters[0]);
+//		fflush(stdout);
+//		return 0;
+//	}
+//	return 0;
 //
 //	float threshold = atof(thresh);
 //	if(threshold == 0.0 && !strcmp(thresh, "0")){
@@ -113,7 +152,13 @@ int handle_validate_command(game* current_game){
 //	return 0;
 //}
 
-int handle_undo_command(game* current_game){
+
+int handle_generate_command(game* current_game, char* parameters[MAX_PARAMETERS]){
+	return 0;
+}
+
+
+int handle_undo_command(game* current_game, char* parameters[MAX_PARAMETERS]){
 	list* undo_redo_list = current_game->undo_redo_list;
 	board* board_before_undo = (board*)undo_redo_list->head->data;
 	board* board_after_undo = (board*)undo_redo_list->head->prev->data;
@@ -141,7 +186,7 @@ int handle_undo_command(game* current_game){
 	return 0;
 }
 
-int handle_redo_command(game* current_game){
+int handle_redo_command(game* current_game, char* parameters[MAX_PARAMETERS]){
 	list* undo_redo_list = current_game->undo_redo_list;
 	board* board_before_redo = (board*)undo_redo_list->head->data;
 	board* board_after_redo = (board*)undo_redo_list->head->prev->data;
@@ -169,8 +214,9 @@ int handle_redo_command(game* current_game){
 	return 0;
 }
 
-int handle_save_command(game* current_game, char* path){
+int handle_save_command(game* current_game, char* parameters[MAX_PARAMETERS]){
 	board* current_board = (board*)current_game->undo_redo_list->head->data;
+	char* path = parameters[0];
 
 	if(current_game->mode == edit){
 		if(board_is_erroneous(current_board)){
@@ -187,7 +233,7 @@ int handle_save_command(game* current_game, char* path){
 	return save_game_to_file(current_game, path);
 }
 
-//int handle_hint_command(game* current_game, char* cells[3]){
+//int handle_hint_command(game* current_game, char* cells[MAX_PARAMETERS]){
 //	int x, y;
 //	board* current_board = current_game->undo_redo_list->head->data;
 //	board* copy_of_board;
@@ -237,7 +283,7 @@ int handle_save_command(game* current_game, char* path){
 //	return 0;
 //}
 
-//int handle_guess_hint_command(game* current_game, char* cells[3]){
+//int handle_guess_hint_command(game* current_game, char* cells[MAX_PARAMETERS]){
 //	int x, y;
 //	board* current_board = current_game->undo_redo_list->head->data;
 //	board* copy_of_board;
@@ -287,7 +333,7 @@ int handle_save_command(game* current_game, char* path){
 //	return 0;
 //}
 
-//int handle_num_solution_command(game* current_game){
+//int handle_num_solution_command(game* current_game, char* parameters[MAX_PARAMETERS]){
 //	board* current_board = current_game->undo_redo_list->head->data;
 //	int counts;
 //
@@ -303,7 +349,7 @@ int handle_save_command(game* current_game, char* path){
 //	return 0;
 //}
 
-//int handle_autofill_command(game* current_game){
+//int handle_autofill_command(game* current_game, char* parameters[MAX_PARAMETERS]){
 //	board* current_board = current_game->undo_redo_list->head->data;
 //	int N = current_board->m*current_board->n;
 //
@@ -318,12 +364,18 @@ int handle_save_command(game* current_game, char* path){
 //	return 0;
 //}
 
-void handle_reset_command(game* current_game){
+int handle_reset_command(game* current_game, char* parameters[MAX_PARAMETERS]){
 	list* undo_redo_list = current_game->undo_redo_list;
 
 	while(undo_redo_list->head->prev != NULL){
 		undo_redo_list->head = undo_redo_list->head->prev;
 	}
+	return 0;
+}
+
+int handle_exit_command(game* current_game, char* parameters[MAX_PARAMETERS]){
+	free_game_mem(current_game);
+	return -1;
 }
 
 

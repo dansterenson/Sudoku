@@ -13,6 +13,26 @@
  */
 
 
+#define SOLVE_NUM_PARAMS 1
+#define edit_NUM_PARAMS 0
+#define MARK_ERRORS_NUM_PARAMS 1
+#define PRINT_BOARD_NUM_PARAMS 0
+#define SET_NUM_PARAMS 3
+#define VALIDATE_NUM_PARAMS 0
+#define GUESS_NUM_PARAMS 1
+#define GENERATE_NUM_PARAMS 2
+#define UNDO_NUM_PARAMS 0
+#define REDO_NUM_PARAMS 0
+#define SAVE_NUM_PARAMS 1
+#define HINT_NUM_PARAMS 2
+#define GUESS_HINT_NUM_PARAMS 2
+#define NUM_SOLUTIONS_NUM_PARAMS 0
+#define AUTOFILL_NUM_PARAMS 0
+#define RESET_NUM_PARAMS 0
+#define EXIT_NUM_PARAMS 0
+
+
+
 /*
  * prints an error of missing parameters and shows the right format
  */

@@ -13,16 +13,16 @@
 
 
 int main() {
-	bool still_playing = true;
+	bool need_to_exit = false;
 	char command[COMMAND_SIZE + 1];
 	game* current_game = create_game(3, 3, init, true);
 
 	print_flush("Welcome To Our Sudoku Game, start playing\n");
 
-	while(still_playing == true){
+	while(!need_to_exit){
 
 		if(feof(stdin)){
-			still_playing = false;
+			need_to_exit = true;
 			break;
 		}
 
@@ -32,7 +32,7 @@ int main() {
 		}
 
 		if(command_parser(command, current_game) == -1){
-			still_playing = false;
+			need_to_exit = true;
 			break;
 		}
 	}

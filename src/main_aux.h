@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-
+#define MAX_PARAMETERS 3
 #define COMMAND_SIZE 256
 
 /*
