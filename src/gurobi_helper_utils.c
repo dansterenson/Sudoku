@@ -96,13 +96,13 @@ void map_vars_to_cell(board* game_board, GRBvariable** vars, int dimensions) {
  * copy of each possible value. Improve performance by not setting constraints for values
  * that already exist in the row/column.
  */
-int handle_row_col_constraints(Constraints row_or_column, GRBmodel *model, GRB_vars* vars, board* game_board){
+int handle_row_col_constraints(Constraints row_or_column, board* game_board, GRB_vars* vars, GRBmodel *model){
 	int* index_ptr;
 	double* val;
 	int i,k;
 	int current_index;
 	int count = 0;
-	int error_occured = false;
+	int error_occurred = false;
 	int current_position = 0;
 	int dimensions = game_board->n * game_board->m;
 
@@ -155,12 +155,12 @@ int handle_row_col_constraints(Constraints row_or_column, GRBmodel *model, GRB_v
 				}
 			}
 
-			error_occured = GRBaddconstr(model, count, index_ptr, val, GRB_EQUAL, 1.0, NULL);
+			error_occurred = GRBaddconstr(model, count, index_ptr, val, GRB_EQUAL, 1.0, NULL);
 			free(val);
 			free(index_ptr);
 
 
-			if (error_occured) {
+			if (error_occurred) {
 			  printf("GUROBI RELATED ERROR OCCURED.\n");
 			  fflush(stdout);
 			  return -1;
@@ -171,7 +171,7 @@ int handle_row_col_constraints(Constraints row_or_column, GRBmodel *model, GRB_v
 	return 1;
 }
 
-int handle_block_constraints(GRBmodel *model, GRB_vars* vars, board* game_board) {
+int handle_block_constraints(board* game_board, GRB_vars* vars, GRBmodel *model) {
 	/*
 	 * Add block constraints - each block should contain only one appearance of each value.
 	 * Minimize the amount of constraints by not setting constraints for values that already exist in the block.
@@ -188,7 +188,7 @@ int handle_block_constraints(GRBmodel *model, GRB_vars* vars, board* game_board)
 	int current_var_value;
 	int block_start_row = 0;
 	int block_start_col = 0;
-	int error_occured = false;
+	int error_occurred = false;
 	int current_position = 0;
 	int board_rows = game_board->n;
 	int board_cols = game_board->m;
@@ -243,11 +243,11 @@ int handle_block_constraints(GRBmodel *model, GRB_vars* vars, board* game_board)
 				}
 			}
 
-			error_occured = GRBaddconstr(model, count, index_ptr, val, GRB_EQUAL, 1.0, NULL);
+			error_occurred = GRBaddconstr(model, count, index_ptr, val, GRB_EQUAL, 1.0, NULL);
 			free(val);
 			free(index_ptr);
 
-			if (error_occured) {
+			if (error_occurred) {
 			  printf("GUROBI RELATED ERROR OCCURED.\n");
 			  fflush(stdout);
 			  return -1;
@@ -264,7 +264,7 @@ int handle_block_constraints(GRBmodel *model, GRB_vars* vars, board* game_board)
 	return 1;
 }
 
-int handle_single_value_constraints(GRBmodel *model, GRB_vars* vars) {
+int handle_single_value_constraints(GRB_vars* vars, GRBmodel *model) {
 
 	int* index_ptr;
 	double* val;
@@ -272,7 +272,7 @@ int handle_single_value_constraints(GRBmodel *model, GRB_vars* vars) {
 	int i;
 	int current_index = 0;
 	int count = 0;
-	int error_occured = false;
+	int error_occurred = false;
 
 	int cell_y_coordinates = vars->vars[0]->j;
 
@@ -300,11 +300,11 @@ int handle_single_value_constraints(GRBmodel *model, GRB_vars* vars) {
 				index_ptr[i] = current_index - count + i;
 			}
 
-			error_occured = GRBaddconstr(model, count, index_ptr, val, GRB_EQUAL, 1.0, NULL);
+			error_occurred = GRBaddconstr(model, count, index_ptr, val, GRB_EQUAL, 1.0, NULL);
 			free(index_ptr);
 			free(val);
 
-			if (error_occured) {
+			if (error_occurred) {
 			  printf("GUROBI RELATED ERROR OCCURED.\n");
 			  fflush(stdout);
 			  return -1;
@@ -337,14 +337,42 @@ int handle_single_value_constraints(GRBmodel *model, GRB_vars* vars) {
 		index_ptr[i] = current_index - count + i;
 	}
 
-	error_occured = GRBaddconstr(model, count, index_ptr, val, GRB_EQUAL, 1.0, NULL);
+	error_occurred = GRBaddconstr(model, count, index_ptr, val, GRB_EQUAL, 1.0, NULL);
 	free(index_ptr);
 	free(val);
 
-	if (error_occured) {
+	if (error_occurred) {
 	  printf("GUROBI RELATED ERROR OCCURED.\n");
 	  fflush(stdout);
 	  return -1;
+	}
+
+	return 1;
+}
+
+int handle_constraints_LP(GRB_vars* vars_ptr, GRBmodel *model){
+	int i;
+	int index_ptr[1];
+	double val[1];
+	val[0] = 1.0;
+	int error_occurred = false;
+
+	for (i = 0; i < vars_ptr->var_count; i++){
+		index_ptr[0] = i;
+
+		error_occurred = GRBaddconstr(model, 1, index_ptr, val, GRB_GREATER_EQUAL, 0.0, NULL);
+			if (error_occurred) {
+		      printf("GUROBI RELATED ERROR OCCURED.\n");
+			  fflush(stdout);
+			  return -1;
+			}
+
+		error_occurred = GRBaddconstr(model, 1, index_ptr, val, GRB_LESS_EQUAL, 1.0, NULL);
+		if (error_occurred) {
+		  printf("GUROBI RELATED ERROR OCCURED.\n");
+		  fflush(stdout);
+		  return -1;
+		}
 	}
 
 	return 1;
@@ -365,33 +393,3 @@ void free_grb_vars_pointer_memory(GRB_vars* vars_ptr){
 	free(vars_ptr);
 	return;
 }
-
-
-int add_constraints_LP(GRBmodel *model, GRB_vars* vars_ptr){
-	int i;
-	int index_ptr[1];
-	double val[1];
-	val[0] = 1.0;
-	int error_occured = false;
-
-	for (i = 0; i < vars_ptr->var_count; i++){
-		index_ptr[0] = i;
-
-		error_occured = GRBaddconstr(model, 1, index_ptr, val, GRB_GREATER_EQUAL, 0.0, NULL);
-			if (error_occured) {
-		      printf("GUROBI RELATED ERROR OCCURED.\n");
-			  fflush(stdout);
-			  return -1;
-			}
-
-		error_occured = GRBaddconstr(model, 1, index_ptr, val, GRB_LESS_EQUAL, 1.0, NULL);
-		if (error_occured) {
-		  printf("GUROBI RELATED ERROR OCCURED.\n");
-		  fflush(stdout);
-		  return -1;
-		}
-	}
-
-	return 1;
-}
-

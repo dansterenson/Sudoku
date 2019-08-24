@@ -53,4 +53,15 @@ typedef struct game {
 	list* undo_redo_list;
 } game;
 
+/*
+ * A cell node, to be used in the exhaustive backtracking
+ * algorithm - in order to simulate recursion using a stack
+ */
+
+typedef struct cell_node {
+	int row_index;
+	int col_index;
+	int value;
+} cell_node;
+
 #endif /* STRUCTURES_H_ */
