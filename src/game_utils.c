@@ -202,6 +202,9 @@ int exhaustive_backtracking_solution_count(board* game_board) {
 		}
 	}
 
+	free_stack_mem(helper_stack);
+
+	return solution_count;
 }
 
 int get_empty_cell_count(board* game_board) {
@@ -241,5 +244,6 @@ void increment_top_node_value(Stack* stack) {
 	cell_node* tmp_stack_node = get_stack_top_element(stack);
 	tmp_stack_node->value +=1;
 }
+
 
 

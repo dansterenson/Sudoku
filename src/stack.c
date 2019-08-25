@@ -37,3 +37,7 @@ void* get_stack_top_element(const Stack* stack){
 
 	return get_node_data(get_head_of_list(stack));
 }
+
+void free_stack_mem(Stack* stack) {
+	free_list_mem(stack,free);
+}
