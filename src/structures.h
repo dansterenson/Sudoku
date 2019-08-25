@@ -12,9 +12,9 @@
 #include "linked_list.h"
 
 typedef enum {
-	init,
-	edit,
-	solve
+	init = 1,
+	edit = 2,
+	solve = 4
 } game_modes;
 
 /*

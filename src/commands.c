@@ -26,8 +26,7 @@ int handle_edit_command(game* current_game, char* parameters[MAX_PARAMETERS]){
 	}
 	else{
 		new_board = create_board(3, 3);
-		new_node = create_node(new_board);
-		list_push(current_game->undo_redo_list, new_node);
+		list_push(current_game->undo_redo_list, new_board);
 	}
 	return 0;
 }
