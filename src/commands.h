@@ -11,6 +11,8 @@
 #include "structures.h"
 #include "main_aux.h"
 
+#define GENERATE_MAX_ITERATIONS 1000
+
 
 /*
  * this module is in charge of handling the different commands

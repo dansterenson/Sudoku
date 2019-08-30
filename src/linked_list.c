@@ -99,7 +99,7 @@ void free_list_mem(list* list_to_free, void (*func_to_free_data)(void*)){
 	while(list_to_free->head != NULL){
 		temp = list_to_free->head;
 		list_to_free->head = list_to_free->head->next;
-		func_to_free_data(list_to_free->head->data);
+		func_to_free_data(temp->data);
 		free(temp);
 	}
 	free(list_to_free);

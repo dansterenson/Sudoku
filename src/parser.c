@@ -54,7 +54,7 @@ int check_call_func(game* current_game, char* command_name, int number_of_params
 		return -1;
 	}
 
-	return handle_func(current_game, parameters);
+	return handle_func(current_game, parameters, command_name);
 }
 
 int command_parser(char* command, game* current_game){
@@ -138,19 +138,18 @@ int command_parser(char* command, game* current_game){
 	}
 
 	/*-------------------------------guess command------------------------------*/
-//	else if(strcmp(command_name, "guess") == 0){
-//		if(check_in_right_mode(solve, current_game) == false){/*not in the right mode*/
-//			print_flush("Error: this command is only available in solve mode\n");
-//			return 0;
-//		}
-//
-//		return_value = check_call_func(current_game, "guess", GUESS_NUM_PARAMS, "guess X",
-//				handle_guess_command, GUESS_MODES);
-//
-//		if(return_value < 0){
-//			return 0;
-//		}
-//	}
+	else if(strcmp(command_name, "guess") == 0){
+
+		return_value = check_call_func(current_game, "guess", GUESS_NUM_PARAMS, "guess X",
+				handle_guess_command, GUESS_MODES);
+
+		if(return_value <= 0){
+			return 0;
+		}
+		else{
+			print_board((board*)current_game->undo_redo_list->head->data, current_game);
+		}
+	}
 
 	/*-------------------------------generate command------------------------------*/
 	else if(strcmp(command_name, "generate") == 0){
@@ -167,7 +166,7 @@ int command_parser(char* command, game* current_game){
 	else if(strcmp(command_name, "undo") == 0){
 
 		return_value = check_call_func(current_game, "undo", UNDO_NUM_PARAMS, "undo",
-				handle_undo_command, UNDO_MODES);
+				handle_undo_redo_command, UNDO_MODES);
 
 		if(return_value < 0){
 			return 0;
@@ -178,7 +177,7 @@ int command_parser(char* command, game* current_game){
 	else if(strcmp(command_name, "redo") == 0){
 
 		return_value = check_call_func(current_game, "redo", REDO_NUM_PARAMS, "redo",
-				handle_redo_command, REDO_MODES);
+				handle_undo_redo_command, REDO_MODES);
 
 		if(return_value < 0){
 			return 0;
@@ -198,26 +197,26 @@ int command_parser(char* command, game* current_game){
 
 
 	/*-------------------------------hint command------------------------------*/
-//	else if(strcmp(command_name, "hint") == 0){
-//
-//		return_value = check_call_func(current_game, "hint", HINT_NUM_PARAMS, "hint X Y",
-//			handle_hint_command, HINT_MODES);
-//
-//		if(return_value < 0){
-//			return 0;
-//		}
-//	}
+	else if(strcmp(command_name, "hint") == 0){
+
+		return_value = check_call_func(current_game, "hint", HINT_NUM_PARAMS, "hint X Y",
+				handle_hint_and_ghint_command, HINT_MODES);
+
+		if(return_value < 0){
+			return 0;
+		}
+	}
 
 	/*-------------------------------guess_hint command------------------------------*/
-//	else if(strcmp(command_name, "guess_hint") == 0){
-//
-//		return_value = check_call_func(current_game, "guess_hint", GUESS_HINT_NUM_PARAMS, "guess_hint X Y",
-//				handle_guess_hint_command, GUESS_HINT_MODES);
-//
-//		if(return_value < 0){
-//			return 0;
-//		}
-//	}
+	else if(strcmp(command_name, "guess_hint") == 0){
+
+		return_value = check_call_func(current_game, "guess_hint", GUESS_HINT_NUM_PARAMS, "guess_hint X Y",
+				handle_hint_and_ghint_command, GUESS_HINT_MODES);
+
+		if(return_value < 0){
+			return 0;
+		}
+	}
 
 	/*-------------------------------num_solutions command------------------------------*/
 //	else if(strcmp(command_name, "num_solutions") == 0){

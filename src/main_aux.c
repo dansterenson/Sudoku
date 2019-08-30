@@ -326,7 +326,7 @@ bool board_is_erroneous(board* board_to_check){
 
 int num_empty_cells(board* board_to_check){
 	int N = board_to_check->n*board_to_check->m;
-	int count;
+	int count = 0;
 	for (int i = 0; i < N; i++){
 		for(int j = 0; j < N; j++){
 			if(board_to_check->board[i][j].value == 0){
@@ -354,5 +354,23 @@ bool check_range(char* param, int num_to_check, int lower_bound, int upper_bound
 	}
 	return true;
 }
+
+bool check_board(board* current_board){
+	int n = current_board->n;
+	int m = current_board->m;
+
+	for(int i = 0; i < m*n; i++){
+		for(int j = 0; j < m*n; j++){
+			if((is_row_legal(current_board->board, i, j, current_board->board[i][j], m*n) == 0)
+			|| (is_col_legal(current_board->board, i, j, current_board->board[i][j], m*n) == 0)
+			|| (is_block_legal(current_board->board, i, j, current_board->board[i][j], n, m) == 0)){
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+
 
 
