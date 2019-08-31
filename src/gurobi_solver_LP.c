@@ -1,6 +1,6 @@
 /*
  * gurobi_solver_LP.c
- *aaa
+ *
  *  Created on: Aug 10, 2019
  *      Author: GuyErez
  */
@@ -22,7 +22,7 @@ int gurobi_main_LP(board* game_board, double chosen_threshold)
   GRBmodel *model = NULL;
   char*      vtype = NULL;
   double* 	obj = NULL
-  int       error_occurred = false;
+  int       error_occurred = FALSE;
   int board_dimensions = game_board->n * game_board->m;
 
   /* Create environment and a log file for the game log */

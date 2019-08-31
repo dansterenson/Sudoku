@@ -1,6 +1,6 @@
 /*
  * gurobi_solver_ILP.c
- * aaa
+ *
  *  Created on: Aug 10, 2019
  *      Author: GuyErez
  */
@@ -21,7 +21,7 @@ int gurobi_main_ILP(board* game_board, int should_fill_board)
   GRBenv   *env   = NULL;
   GRBmodel *model = NULL;
   char*      vtype = NULL;
-  int       error_occurred = false;
+  int       error_occurred = FALSE;
 
   /* Create environment and a log file for the game log */
   error_occurred = GRBloadenv(&env, "game_log.log");

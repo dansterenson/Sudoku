@@ -1,6 +1,6 @@
 /*
  * gurobi_helper.utils.c
- * aaa
+ *
  *  Created on: Aug 10, 2019
  *      Author: GuyErez
  */
@@ -91,18 +91,13 @@ void map_vars_to_cell(board* game_board, GRBvariable** vars, int dimensions) {
 	}
 }
 
-/*
- * Handle constraints for rows and columns - each row and col should contain only one
- * copy of each possible value. Improve performance by not setting constraints for values
- * that already exist in the row/column.
- */
 int handle_row_col_constraints(Constraints row_or_column, board* game_board, GRB_vars* vars, GRBmodel *model){
 	int* index_ptr;
 	double* val;
 	int i,k;
 	int current_index;
 	int count = 0;
-	int error_occurred = false;
+	int error_occurred = FALSE;
 	int current_position = 0;
 	int dimensions = game_board->n * game_board->m;
 
@@ -172,11 +167,6 @@ int handle_row_col_constraints(Constraints row_or_column, board* game_board, GRB
 }
 
 int handle_block_constraints(board* game_board, GRB_vars* vars, GRBmodel *model) {
-	/*
-	 * Add block constraints - each block should contain only one appearance of each value.
-	 * Minimize the amount of constraints by not setting constraints for values that already exist in the block.
-	 * */
-
 	int* index_ptr;
 	double* val;
 	int i,k;
@@ -188,7 +178,7 @@ int handle_block_constraints(board* game_board, GRB_vars* vars, GRBmodel *model)
 	int current_var_value;
 	int block_start_row = 0;
 	int block_start_col = 0;
-	int error_occurred = false;
+	int error_occurred = FALSE;
 	int current_position = 0;
 	int board_rows = game_board->n;
 	int board_cols = game_board->m;
@@ -272,7 +262,7 @@ int handle_single_value_constraints(GRB_vars* vars, GRBmodel *model) {
 	int i;
 	int current_index = 0;
 	int count = 0;
-	int error_occurred = false;
+	int error_occurred = FALSE;
 
 	int cell_y_coordinates = vars->vars[0]->j;
 
@@ -355,7 +345,7 @@ int handle_constraints_LP(GRB_vars* vars_ptr, GRBmodel *model){
 	int index_ptr[1];
 	double val[1];
 	val[0] = 1.0;
-	int error_occurred = false;
+	int error_occurred = FALSE;
 
 	for (i = 0; i < vars_ptr->var_count; i++){
 		index_ptr[0] = i;
@@ -388,7 +378,7 @@ void free_grb_vars_memory(GRBvariable** vars, int var_count){
 }
 
 
-void free_grb_vars_pointer_memory(GRB_vars* vars_ptr){
+void free_all_grb_vars(GRB_vars* vars_ptr){
 	free_grb_vars_memory(vars_ptr->vars, vars_ptr->var_count);
 	free(vars_ptr);
 	return;

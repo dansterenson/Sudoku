@@ -1,14 +1,9 @@
-/*
- * gurobi_structs.h
- * aaa
- *  Created on: Aug 10, 2019
- *      Author: GuyErez
- */
-
 #ifndef GUROBI_STRUCTS_H_
 #define GUROBI_STRUCTS_H_
 
-#include <stdbool.h>
+#define FALSE 0
+#define TRUE 1
+
  /*
   * This module contains custom Structs used in Gurobi models (Both LP and ILP),
   * to store the relevant variables for Linear Programming calculations.
