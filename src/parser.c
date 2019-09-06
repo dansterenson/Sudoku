@@ -25,7 +25,7 @@ const char * mode_for_message[] = {
 };
 
 int check_call_func(game* current_game, char* command_name, int number_of_params,
-		char* format, int (*handle_func)(game* , char**), int modes_availabilty){
+		char* format, int (*handle_func)(game* , char**, char*), int modes_availabilty){
 
 	char* parameters[MAX_PARAMETERS];
 	char* too_many;
@@ -52,6 +52,11 @@ int check_call_func(game* current_game, char* command_name, int number_of_params
 		printf("Error: there are too many parameters, right format: %s.\n", format);
 		fflush(stdout);
 		return -1;
+	}
+
+	// Special command with no parameters -> put NULL in parameters
+	if(number_of_params == 0){
+		return handle_func(current_game, NULL, command_name);
 	}
 
 	return handle_func(current_game, parameters, command_name);
@@ -219,27 +224,27 @@ int command_parser(char* command, game* current_game){
 	}
 
 	/*-------------------------------num_solutions command------------------------------*/
-//	else if(strcmp(command_name, "num_solutions") == 0){
-//
-//		return_value = check_call_func(current_game, "num_solutions", NUM_SOLUTIONS_NUM_PARAMS, "num_solutions",
-//				handle_num_solutions_command, NUM_SOLUTIONS_MODES);
-//
-//		if(return_value < 0){
-//			return 0;
-//		}
-//	}
+	else if(strcmp(command_name, "num_solutions") == 0){
+
+		return_value = check_call_func(current_game, "num_solutions", NUM_SOLUTIONS_NUM_PARAMS, "num_solutions",
+				handle_num_solutions_command, NUM_SOLUTIONS_MODES);
+
+		if(return_value < 0){
+			return 0;
+		}
+	}
 
 
 	/*-------------------------------autofill command------------------------------*/
-//	else if(strcmp(command_name, "autofill") == 0){
-//
-//		return_value = check_call_func(current_game, "autofill", AUTOFILL_NUM_PARAMS, "autofill",
-//				handle_autofill_command, SUTOFILL_MODES);
-//
-//		if(return_value < 0){
-//			return 0;
-//		}
-//	}
+	else if(strcmp(command_name, "autofill") == 0){
+
+		return_value = check_call_func(current_game, "autofill", AUTOFILL_NUM_PARAMS, "autofill",
+				handle_autofill_command, AUTOFILL_MODES);
+
+		if(return_value < 0){
+			return 0;
+		}
+	}
 
 
 	/*-------------------------------reset command------------------------------*/

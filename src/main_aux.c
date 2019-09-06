@@ -8,10 +8,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "structures.h"
 #include "linked_list.h"
 #include "main_aux.h"
-#include <ctype.h>
+#include "game_utils.h"
+
 
 void print_flush(char* str){
 	printf("%s", str);
@@ -43,6 +45,8 @@ int get_command_from_user(char command[COMMAND_SIZE + 1]){ /*from hw3*/
 
 board* create_board(int n, int m){
 	int N = n*m;
+	int i,j;
+
 	board* new_board = (board*)calloc(1, sizeof(board));
 	if(new_board == NULL){
 		memory_alloc_problem();
@@ -57,12 +61,12 @@ board* create_board(int n, int m){
 		memory_alloc_problem();
 	}
 
-	for (int i = 0; i < N; i++){
+	for (i = 0; i < N; i++){
 		new_board->board[i] = (board_cell*)calloc(N, sizeof(board_cell));
 		if(new_board->board[i] == NULL){
 			memory_alloc_problem();
 		}
-		for(int j = 0; j < N; j++){
+		for(j = 0; j < N; j++){
 			new_board->board[i][j].is_error = false;
 			new_board->board[i][j].is_fixed = false;
 			new_board->board[i][j].value = 0;
@@ -73,13 +77,15 @@ board* create_board(int n, int m){
 
 game* create_game(int n, int m, game_modes mode, bool is_mark_errors){
 	board* new_board;
+	list* undo_redo_list;
+	game* game_new;
 
-	game* game_new = (game*) calloc(1, sizeof(game));
+	game_new = (game*) calloc(1, sizeof(game));
 	if(game_new == NULL){
 		memory_alloc_problem();
 	}
 
-	list* undo_redo_list = (list*) calloc(1, sizeof(list));
+	undo_redo_list = (list*) calloc(1, sizeof(list));
 	if(undo_redo_list == NULL){
 		memory_alloc_problem();
 	}
@@ -95,7 +101,7 @@ game* create_game(int n, int m, game_modes mode, bool is_mark_errors){
 	return game_new;
 }
 
-bool cell_in_right_format(int n, int m, int cell){
+int cell_in_right_format(int n, int m, int cell){
 	if(cell < 0 || cell > n*m){
 		return false;
 	}
@@ -116,6 +122,7 @@ int load_game_from_file(game* current_game, char* path){
 	FILE *fp;
 	char c;
 	int cell_value;
+	int i,j;
 	int new_m, new_n;
 	int num_read = 0;
 	board* new_board;
@@ -141,8 +148,8 @@ int load_game_from_file(game* current_game, char* path){
 
 	new_board = create_board(new_n, new_m);
 
-	for(int i = 0; i < new_n*new_m; i++){
-		for(int j = 0; j < new_n*new_m; j++){
+	for(i = 0; i < new_n*new_m; i++){
+		for(j = 0; j < new_n*new_m; j++){
 			num_read = fscanf(fp, "%d", &cell_value);
 			if(!cell_in_right_format(new_n, new_m, cell_value)){
 				return(file_not_right_format(fp));
@@ -170,10 +177,12 @@ int load_game_from_file(game* current_game, char* path){
 int save_game_to_file(game* current_game, char* path){
 	FILE *fp;
 	board* current_board;
+	int i,j,n,m;
+
 	list* temp_list = current_game->undo_redo_list;
 	current_board = (board*)(temp_list->head->data);
-	int n = current_board->n;
-	int m = current_board->m;
+	n = current_board->n;
+	m = current_board->m;
 
 	fp = fopen(path, "w+");
 
@@ -184,8 +193,8 @@ int save_game_to_file(game* current_game, char* path){
 
 	fprintf(fp, "%d %d\n", m, n);
 
-	for(int i = 0; i < n*m; i++){
-		for(int j = 0; j < n*m; j++){
+	for(i = 0; i < n*m; i++){
+		for(j = 0; j < n*m; j++){
 			fprintf(fp, "%d",current_board->board[i][j].value);
 			/*in edit mode every non empty cell is marked as fixed so needs a "."*/
 			if(current_board->board[i][j].is_fixed == true
@@ -211,9 +220,11 @@ int save_game_to_file(game* current_game, char* path){
 
 
 void free_board_mem(void* board_to_free){
+	int i;
 	board* temp_board = (board*)board_to_free;
 	int N = temp_board->n * temp_board->m;
-	for (int i = 0; i < N; i++){
+
+	for (i = 0; i < N; i++){
 		free(temp_board->board[i]);
 	}
 	free(temp_board->board);
@@ -286,12 +297,15 @@ void print_board(board* board_to_print, game* game){
 }
 
 board* copy_board(board* board_to_copy){
-	int n = board_to_copy->n;
-	int m = board_to_copy->m;
-	board* new_board = create_board(n, m);
+	int i,j,n,m;
+	board* new_board;
 
-	for (int i = 0; i < n*m; i++){
-		for(int j = 0; j < n*m; j++){
+	n = board_to_copy->n;
+	m = board_to_copy->m;
+	new_board = create_board(n, m);
+
+	for (i = 0; i < n*m; i++){
+		for(j = 0; j < n*m; j++){
 			new_board->board[i][j].is_error = board_to_copy->board[i][j].is_error;
 			new_board->board[i][j].is_fixed = board_to_copy->board[i][j].is_fixed;
 			new_board->board[i][j].value = board_to_copy->board[i][j].value;
@@ -300,10 +314,13 @@ board* copy_board(board* board_to_copy){
 	return new_board;
 }
 
-bool board_is_full(board* board_to_check){
+int board_is_full(board* board_to_check){
+	int i,j;
+
 	int N = board_to_check->n*board_to_check->m;
-	for (int i = 0; i < N; i++){
-		for(int j = 0; j < N; j++){
+
+	for (i = 0; i < N; i++){
+		for(j = 0; j < N; j++){
 			if(board_to_check->board[i][j].value == 0){
 				return false;
 			}
@@ -312,10 +329,13 @@ bool board_is_full(board* board_to_check){
 	return true;
 }
 
-bool board_is_erroneous(board* board_to_check){
+int board_is_erroneous(board* board_to_check){
+	int i,j;
+
 	int N = board_to_check->n*board_to_check->m;
-	for (int i = 0; i < N; i++){
-		for(int j = 0; j < N; j++){
+
+	for (i = 0; i < N; i++){
+		for(j = 0; j < N; j++){
 			if(board_to_check->board[i][j].is_error == 1){
 				return true;
 			}
@@ -325,10 +345,13 @@ bool board_is_erroneous(board* board_to_check){
 }
 
 int num_empty_cells(board* board_to_check){
+	int i,j;
+
 	int N = board_to_check->n*board_to_check->m;
 	int count = 0;
-	for (int i = 0; i < N; i++){
-		for(int j = 0; j < N; j++){
+
+	for (i = 0; i < N; i++){
+		for(j = 0; j < N; j++){
 			if(board_to_check->board[i][j].value == 0){
 				count++;
 			}
@@ -337,7 +360,7 @@ int num_empty_cells(board* board_to_check){
 	return count;
 }
 
-bool check_atoi_error(char* param_name, int after_convert, char* before_convert, int N){
+int check_atoi_error(char* param_name, int after_convert, char* before_convert, int N){
 	if(after_convert == 0 && strcmp(before_convert, "0") != 0){
 		printf("Error: parameter %s is invalid, should be a number in range 1 - %d\n", param_name, N);
 		fflush(stdout);
@@ -346,7 +369,7 @@ bool check_atoi_error(char* param_name, int after_convert, char* before_convert,
 	return false;
 }
 
-bool check_range(char* param, int num_to_check, int lower_bound, int upper_bound){
+int check_range(char* param, int num_to_check, int lower_bound, int upper_bound){
 	if(num_to_check < lower_bound || num_to_check > upper_bound){
 		printf("Error: parameter %s is not in range, should be in range %d - %d\n",param, lower_bound, upper_bound);
 		fflush(stdout);
@@ -355,20 +378,37 @@ bool check_range(char* param, int num_to_check, int lower_bound, int upper_bound
 	return true;
 }
 
-bool check_board(board* current_board){
+int check_board(board* current_board){
+	int i,j;
 	int n = current_board->n;
 	int m = current_board->m;
 
-	for(int i = 0; i < m*n; i++){
-		for(int j = 0; j < m*n; j++){
-			if((is_row_legal(current_board->board, i, j, current_board->board[i][j], m*n) == 0)
-			|| (is_col_legal(current_board->board, i, j, current_board->board[i][j], m*n) == 0)
-			|| (is_block_legal(current_board->board, i, j, current_board->board[i][j], n, m) == 0)){
+	for(i = 0; i < m*n; i++){
+		for(j = 0; j < m*n; j++){
+			if(is_legal_cell(current_board,i,j,current_board->board[i][j].value) == 0) {
 				return false;
 			}
 		}
 	}
 	return true;
+}
+
+void keep_y_cells(board* board_to_clear, int y){
+	int N = board_to_clear->m * board_to_clear->n;
+	int i = 0;
+	int j = 0;
+	int num_to_clear = N*N - y;
+
+	while(num_to_clear > 0){
+		i = rand()%N;
+		j = rand()%N;
+
+		if (board_to_clear->board[i][j].value != 0){
+			board_to_clear->board[i][j].value = 0;
+			num_to_clear--;
+		}
+	}
+	return;
 }
 
 

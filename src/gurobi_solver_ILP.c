@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include "gurobi_structs.h"
 #include "gurobi_helper_utils.h"
+#include "gurobi_solver_ILP.h"
 #include "gurobi_c.h"
 
 void freeGRB_and_vtype (GRBenv *env, GRBmodel *model, GRB_vars* vars_ptr, char* vtype);

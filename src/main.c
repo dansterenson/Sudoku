@@ -10,12 +10,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "parser.h"
+#include "SPBufferset.h"
 
 
 int main() {
 	bool need_to_exit = false;
 	char command[COMMAND_SIZE + 1];
 	game* current_game = create_game(3, 3, init, true);
+
+	SP_BUFF_SET();
 
 	print_flush("Welcome To Our Sudoku Game, start playing\n");
 

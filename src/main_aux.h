@@ -8,12 +8,13 @@
 #ifndef MAIN_AUX_H_
 #define MAIN_AUX_H_
 
-#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 #define MAX_PARAMETERS 3
 #define COMMAND_SIZE 256
+#define TRUE 1
+#define FALSE 0
 
 /*
  * prints the given string and flushes the buffer.
@@ -48,7 +49,7 @@ game* create_game(int n, int m, game_modes mode, bool is_mark_errors);
  * checks if the board cell is in the right format
  * value > 0 and value < n*m.
  */
-bool cell_in_right_format(int n, int m, int cell);
+int cell_in_right_format(int n, int m, int cell);
 
 /*
  * prints a message that a file is not in the right format
@@ -98,14 +99,14 @@ board* copy_board(board* board_to_copy);
 /*
  * checks whether the given board is full or not.
  */
-bool board_is_full(board* board_to_check);
+int board_is_full(board* board_to_check);
 
 
 /*
  * checks whether the given board is erroneous or not.
  * returns true if erroneous.
  */
-bool board_is_erroneous(board* board_to_check);
+int board_is_erroneous(board* board_to_check);
 
 /*
  * counts the number of empty cells in a given board.
@@ -113,19 +114,33 @@ bool board_is_erroneous(board* board_to_check);
  */
 int num_empty_cells(board* board_to_check);
 
+
 /*
  * checks is a converted number was originally zero or the atoi function had a problem
  * returns true if the atoi function had a problem and prints an error message.
  * otherwise returns false.
  */
-bool check_atoi_error(char* param_name, int after_convert, char* before_convert, int N);
+int check_atoi_error(char* param_name, int after_convert, char* before_convert, int N);
 
 /*
  * checks whether a given number is between given lower bound and upper bound.
  * returns error if not and prints an error message.
  * otherwise returns true.
  */
-bool check_range(char* param, int num_to_check, int lower_bound, int upper_bound);
+int check_range(char* param, int num_to_check, int lower_bound, int upper_bound);
+
+/*
+ * Goes over all cells in board and checks if they are legal.
+ * If all cells are legal (and contain legal values - not 0 or empty) return true.
+ * Else - if we have an illegal cell, return false.
+ */
+int check_board(board* current_board);
+
+/*
+ * Clear all non-empty cells from the board, except y (parameter given from the user) cells
+ * which will remain filled.
+ */
+void keep_y_cells(board* board_to_clear, int y);
 
 
 #endif /* MAIN_AUX_H_ */
