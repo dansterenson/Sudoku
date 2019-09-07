@@ -9,8 +9,11 @@
 #include <stdlib.h>
 
 
-void stack_init(Stack* stack){
+Stack* stack_init(){
+	Stack* stack = (Stack*)calloc(1, sizeof(Stack));
 	init_list(stack);
+
+	return stack;
 }
 
 bool stack_is_empty(const Stack* stack){

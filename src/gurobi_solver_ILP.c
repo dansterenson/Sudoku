@@ -30,7 +30,6 @@ int gurobi_main_ILP(board* game_board, int should_fill_board)
 		printf("ERROR %d GRBloadenv(): %s\n", error_occurred, GRBgeterrormsg(env));
 		printf("GUROBI RELATED ERROR OCCURED.\n");
 		fflush(stdout);
-		//	  GRBfreeenv(env);
 		return -1;
   }
 
@@ -50,7 +49,6 @@ int gurobi_main_ILP(board* game_board, int should_fill_board)
 		printf("ERROR %d GRBnewmodel(): %s\n", error_occurred, GRBgeterrormsg(env));
 		printf("GUROBI RELATED ERROR OCCURED.\n");
 		fflush(stdout);
-		//	  GRBfreemodel(model);
 		GRBfreeenv(env);
 		return -1;
   }
@@ -180,7 +178,7 @@ int gurobi_main_ILP(board* game_board, int should_fill_board)
 		   /* If no error occurred - use the attributes to solve the board */
 		   for(i = 0; i < vars_ptr->var_count; i++){
 			   if (sol[i] == 1.0){
-				   game_board->board[vars_ptr->vars[i]->j][vars_ptr->vars[i]->i].value = vars_ptr->vars[i]->k;
+				   game_board->board[vars_ptr->vars[i]->i][vars_ptr->vars[i]->j].value = vars_ptr->vars[i]->k;
 			   }
 		   }
 
@@ -215,6 +213,6 @@ int gurobi_main_ILP(board* game_board, int should_fill_board)
 void freeGRB_and_vtype (GRBenv *env, GRBmodel *model, GRB_vars* vars_ptr, char* vtype) {
 		GRBfreemodel(model);
 		GRBfreeenv(env);
-		free_grb_vars_pointer_memory(vars_ptr);
+		free_all_grb_vars(vars_ptr);
 		free(vtype);
 }
