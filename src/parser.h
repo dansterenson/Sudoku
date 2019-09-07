@@ -15,7 +15,7 @@
 
 
 #define SOLVE_NUM_PARAMS 1
-#define edit_NUM_PARAMS 1
+#define EDIT_NUM_PARAMS 1
 #define MARK_ERRORS_NUM_PARAMS 1
 #define PRINT_BOARD_NUM_PARAMS 0
 #define SET_NUM_PARAMS 3
@@ -51,14 +51,17 @@
 #define EXIT_MODES (edit | solve)
 
 /*
- * checks if parameters are missing or if there are too many parameters given.
- * checks if the command is valid in the current game mode.
- * calls the given function which handles the given command.
- * returns -1 in error, 0 otherwise.
+ * checks if command is in the right mode.
+ * returns true if it is, and flase otherwise.
  */
-int check_call_func(game* current_game, char* command_name, int number_of_params,
-		char* format, int (*handle_func)(game* , char**), int modes_availabilty);
+int right_mode(game* current_game, int modes_availabilty, char* command_name);
 
+/*
+ * checks if the given command has the right amount of parameters.
+ * filling the parameters array with the given parameters.
+ * returns false if number of parameters is not right.
+ */
+int check_num_params(int number_of_params, char* command, char* format, char* parameters[MAX_PARAMETERS]);
 
 /*
  * parse the given command and sends it to the check_call_func.

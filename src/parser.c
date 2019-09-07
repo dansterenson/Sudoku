@@ -24,48 +24,50 @@ const char * mode_for_message[] = {
 		"edit or solve",
 };
 
-int check_call_func(game* current_game, char* command_name, int number_of_params,
-		char* format, int (*handle_func)(game* , char**, char*), int modes_availabilty){
-
-	char* parameters[MAX_PARAMETERS];
-	char* too_many;
-	char delimitor[8] = " \t\r\n";
+const char delimitor[8] = " \t\r\n";
 
 
+int right_mode(game* current_game, int modes_availabilty, char* command_name){
 	if((current_game->mode & modes_availabilty) == 0){
-		printf("Error: %s command is only available in %s\n",command_name, mode_for_message[modes_availabilty]);
-		fflush(stdout);
-		return -1;
+		printf("Error: %s command is only available in %s\n", command_name, mode_for_message[modes_availabilty]);
+		return false;
 	}
+	return true;
+}
+
+int check_num_params(int number_of_params, char* command, char* format, char* parameters[MAX_PARAMETERS]){
+	char* too_many;
+	char* param;
+	char* command_name;
+
+	command_name = strtok(command, delimitor);
 
 	for(int i = 0; i < number_of_params; i++){
-		parameters[i] = strtok(NULL, delimitor);
-		if(parameters[i] == NULL && strcmp(command_name,"edit") != 0){
-			printf("Error: some parameters are missing in %s command, right format: %s.\n", command_name, format);
-			fflush(stdout);
-			return -1;
-		}
-	}
+		param = strtok(NULL, delimitor);
 
+		if(param == NULL && strcmp(command_name, "edit") != 0){
+			printf("Error: some parameters are missing in %s command, right format: %s.\n", command_name, format);
+			return false;
+		}
+		parameters[i] = param;
+	}
 	too_many = strtok(NULL, delimitor);
 	if(too_many != NULL){
 		printf("Error: there are too many parameters, right format: %s.\n", format);
-		fflush(stdout);
-		return -1;
+		return false;
 	}
-
-	// Special command with no parameters -> put NULL in parameters
-	if(number_of_params == 0){
-		return handle_func(current_game, NULL, command_name);
-	}
-
-	return handle_func(current_game, parameters, command_name);
+	return true;
 }
 
+
 int command_parser(char* command, game* current_game){
-	char delimitor[8] = " \t\r\n";
 	char* command_name;
 	int return_value;
+	int x, y, z;
+	float threshold;
+	char* parameters[MAX_PARAMETERS];
+	board* current_board = current_game->undo_redo_list->head->data;
+	int N = current_board->m*current_board->n;
 
 	command_name = strtok(command, delimitor); /*get the command name*/
 
@@ -75,204 +77,378 @@ int command_parser(char* command, game* current_game){
 
 	/*-------------------------------solve command------------------------------*/
 	else if(strcmp(command_name, "solve") == 0){
-		game_modes previous_mode = current_game->mode;
 
-		return_value = check_call_func(current_game, "solve", SOLVE_NUM_PARAMS, "solve <file_path>",
-				handle_solve_command, SOLVE_MODES );
+		if(check_num_params(SOLVE_NUM_PARAMS, command, "solve X", parameters) == false){
+			return 0;
+		}
 
-		if(return_value < 0){
-			current_game->mode = previous_mode;
-		}
-		else{
-			print_board((board*)current_game->undo_redo_list->head->data, current_game);
-		}
+		handle_solve_command(current_game, parameters[0]);
+
+		print_board((board*)current_game->undo_redo_list->head->data, current_game);
+		return 0;
 	}
 
 	/*-------------------------------edit command------------------------------*/
 	else if(strcmp(command_name, "edit") == 0){
-		game_modes previous_mode = current_game->mode;
 
-		return_value = check_call_func(current_game, "edit", edit_NUM_PARAMS, "edit [file_path]",
-				handle_edit_command, EDIT_MODES);
+		if(check_num_params(EDIT_NUM_PARAMS, command, "edit [X]", parameters) == false){
+			return 0;
+		}
 
-		if(return_value < 0){
-			current_game->mode = previous_mode;
-		}
-		else{
-			print_board((board*)current_game->undo_redo_list->head->data, current_game);
-		}
+		handle_edit_command(current_game, parameters[0]);
+		print_board((board*)current_game->undo_redo_list->head->data, current_game);
+		return 0;
 	}
 
 	/*-------------------------------mark errors command------------------------------*/
 	else if(strcmp(command_name, "mark_errors") == 0){
 
-		return_value = check_call_func(current_game, "mark_errors", MARK_ERRORS_NUM_PARAMS, "mark_errors X[0 or 1]",
-				handle_mark_errors_command, MARK_ERRORS_MODES);
+		if(!right_mode(current_game, MARK_ERRORS_MODES, "mark_errors")){
+			return 0;
+		}
 
+		if (check_num_params(MARK_ERRORS_NUM_PARAMS, command, "mark_errors X", parameters) == false){
+			return 0;
+		}
+
+
+		x = atoi(parameters[0]);
+		if((x == 0 && strcmp(parameters[0], "0") != 0) || (x != 0 && x != 1)){
+			printf("Error: parameter is invalid, should be 0 or 1\n");
+			return 0;
+		}
+
+		handle_mark_errors_command(current_game, x);
+		return 0;
 	}
 
 	/*-------------------------------print board command------------------------------*/
 	else if(strcmp(command_name, "print_board") == 0){
 
+		if(!right_mode(current_game, PRINT_BOARD_MODES, "print_board")){
+			return 0;
+		}
 
-		return_value = check_call_func(current_game, "print_board", PRINT_BOARD_NUM_PARAMS, "print_board",
-				handle_print_board_command, PRINT_BOARD_MODES);
+		if(check_num_params(PRINT_BOARD_NUM_PARAMS, command, "print_board", parameters) == false){
+			return 0;
+		}
 
+		handle_print_board_command(current_game);
+		return 0;
 	}
 
 	/*-------------------------------set command------------------------------*/
 	else if(strcmp(command_name, "set") == 0){
 
-		return_value = check_call_func(current_game, "set", SET_NUM_PARAMS, "set X Y Z",
-				handle_set_command, SET_MODES);
-		if(return_value < 0){
+		if(!right_mode(current_game, SET_MODES, "set")){
 			return 0;
 		}
+
+		if(check_num_params(SET_NUM_PARAMS, command, "set X Y Z", parameters) == false){
+			return 0;
+		}
+
+		x = atoi(parameters[0]);
+		y = atoi(parameters[1]);
+		z = atoi(parameters[2]);
+
+		if(check_atoi_error("X", x, parameters[0]) || check_atoi_error("Y", y, parameters[1])
+				|| check_atoi_error("Z", z, parameters[2])){
+			return 0;
+		}
+
+		if(!check_range("X", x, 1, N) || !check_range("Y", y, 1, N) || !check_range("Z", z, 0, N)){
+			return 0;
+		}
+
+		/*in solve mode user can't change fixed cells*/
+		if((current_game->mode == solve) && (current_board->board[x - 1][y - 1].is_fixed == true)){
+			printf("Error: this cell is fixed and cannot be changed.\n");
+			return 0;
+		}
+
+		handle_set_command(current_game, y - 1, x - 1, z);
+		return 0;
 	}
 
 
 	/*-------------------------------edit command------------------------------*/
 	else if(strcmp(command_name, "validate") == 0){
 
-		return_value = check_call_func(current_game, "validate", VALIDATE_NUM_PARAMS, "validate",
-				handle_validate_command, VALIDATE_MODES);
-
-		if(return_value < 0){
+		if(!right_mode(current_game, VALIDATE_MODES, "validate")){
 			return 0;
 		}
+
+		if(check_num_params(VALIDATE_NUM_PARAMS, command, "validate", parameters) == false){
+			return 0;
+		}
+
+		if(board_is_erroneous(current_board) == true){
+			printf("Error: the board is erroneous\n");
+			return 0;
+		}
+
+		handle_validate_command(current_game);
+		return 0;
 	}
 
 	/*-------------------------------guess command------------------------------*/
 	else if(strcmp(command_name, "guess") == 0){
 
-		return_value = check_call_func(current_game, "guess", GUESS_NUM_PARAMS, "guess X",
-				handle_guess_command, GUESS_MODES);
-
-		if(return_value <= 0){
+		if(!right_mode(current_game, GUESS_MODES, "guess")){
 			return 0;
 		}
-		else{
-			print_board((board*)current_game->undo_redo_list->head->data, current_game);
+
+		if(check_num_params(GUESS_NUM_PARAMS, command, "guess X", parameters) == false){
+			return 0;
 		}
+
+		threshold = atof(parameters[0]);
+		if(threshold == 0.0 && strcmp(parameters[0], "0") != 0){
+			printf("Error: the given threshold is invalid, should be a number.\n");
+			return 0;
+		}
+
+		if(threshold > 1.0 || threshold < 0.0){
+			printf("Error: the given threshold is invalid, should be a number between 0 and 1. format: guess X\n");
+			return 0;
+		}
+
+		if(board_is_erroneous(current_board)){
+			printf("board is erroneous\n");
+			return 0;
+		}
+
+		handle_guess_command(current_game, threshold);
+		return 0;
 	}
 
 	/*-------------------------------generate command------------------------------*/
 	else if(strcmp(command_name, "generate") == 0){
-
-		return_value = check_call_func(current_game, "generate", GENERATE_NUM_PARAMS, "generate X Y",
-				handle_generate_command, GENERATE_MODES);
-
-		if(return_value < 0){
+		if(!right_mode(current_game, GENERATE_MODES, "generate")){
 			return 0;
 		}
+
+		if(check_num_params(GENERATE_NUM_PARAMS, command, "generate X Y", parameters) == false){
+			return 0;
+		}
+
+		x = atoi(parameters[0]);
+		y = atoi(parameters[1]);
+
+		if(check_atoi_error("X", x, parameters[0]) || check_atoi_error("Y", y, parameters[1])){
+			return 0;
+		}
+
+		if(!check_range("X", x, 0, N*N) == false || !check_range("Y", y, 0, N*N)){
+			return 0;
+		}
+
+		handle_generate_command(current_game, x, y);
+		return 0;
 	}
 
 	/*-------------------------------undo command------------------------------*/
 	else if(strcmp(command_name, "undo") == 0){
-
-		return_value = check_call_func(current_game, "undo", UNDO_NUM_PARAMS, "undo",
-				handle_undo_redo_command, UNDO_MODES);
-
-		if(return_value < 0){
+		if(!right_mode(current_game, UNDO_MODES, "undo")){
 			return 0;
 		}
+
+		if(check_num_params(UNDO_NUM_PARAMS, command, "undo", parameters) == false){
+			return 0;
+		}
+
+		handle_undo_redo_command(current_game, 0);
+		return 0;
 	}
 
 	/*-------------------------------redo command------------------------------*/
 	else if(strcmp(command_name, "redo") == 0){
-
-		return_value = check_call_func(current_game, "redo", REDO_NUM_PARAMS, "redo",
-				handle_undo_redo_command, REDO_MODES);
-
-		if(return_value < 0){
+		if(!right_mode(current_game, REDO_MODES, "redo")){
 			return 0;
 		}
+
+		if(check_num_params(REDO_NUM_PARAMS, command, "redo", parameters) == false){
+			return 0;
+		}
+
+		handle_undo_redo_command(current_game, 1);
+		return 0;
 	}
 
 	/*-------------------------------save command------------------------------*/
 	else if(strcmp(command_name, "save") == 0){
-
-		return_value = check_call_func(current_game, "save", SAVE_NUM_PARAMS, "save X",
-				handle_save_command, SAVE_MODES);
-
-		if(return_value < 0){
+		if(!right_mode(current_game, SAVE_MODES, "save")){
 			return 0;
 		}
-	}
 
+		if(check_num_params(SAVE_NUM_PARAMS, command, "save X", parameters) == false){
+			return 0;
+		}
+
+		if(current_game->mode == edit){
+			if(board_is_erroneous(current_board)){
+				printf("Erroneous boards are not saved in edit mode\n");
+				return 0;
+			}
+		}
+
+		handle_save_command(current_game, parameters[0]);
+		return 0;
+	}
 
 	/*-------------------------------hint command------------------------------*/
 	else if(strcmp(command_name, "hint") == 0){
-
-		return_value = check_call_func(current_game, "hint", HINT_NUM_PARAMS, "hint X Y",
-				handle_hint_and_ghint_command, HINT_MODES);
-
-		if(return_value < 0){
+		if(!right_mode(current_game, HINT_MODES, "hint")){
 			return 0;
 		}
+
+		if(check_num_params(HINT_NUM_PARAMS, command, "hint X Y", parameters) == false){
+			return 0;
+		}
+
+		x = atoi(parameters[0]);
+		y = atoi(parameters[1]);
+
+		if(check_atoi_error("X", x, parameters[0]) || check_atoi_error("Y", y, parameters[1])){
+			return 0;
+		}
+
+		if(!check_range("X", x, 1, N) || !check_range("Y", y, 1, N)){
+			return 0;
+		}
+
+		if(board_is_erroneous(current_board) == true){
+			printf("Error: board is erroneous\n");
+			return 0;
+		}
+
+		if(current_board->board[y - 1][x - 1].is_fixed == 1){
+			printf("Error: the provided cell is fixed\n");
+			return 0;
+		}
+
+		if(current_board->board[y - 1][x - 1].value != 0){
+			printf("Error: the provided cell contains a value already\n");
+			return 0;
+		}
+
+		handle_hint_and_ghint_command(current_game, y - 1, x - 1, 0);
+		return 0;
 	}
 
 	/*-------------------------------guess_hint command------------------------------*/
 	else if(strcmp(command_name, "guess_hint") == 0){
 
-		return_value = check_call_func(current_game, "guess_hint", GUESS_HINT_NUM_PARAMS, "guess_hint X Y",
-				handle_hint_and_ghint_command, GUESS_HINT_MODES);
-
-		if(return_value < 0){
+		if(!right_mode(current_game, GUESS_HINT_MODES, "guess_hint")){
 			return 0;
 		}
+
+		if(check_num_params(GUESS_HINT_NUM_PARAMS, command, "guess_hint X Y", parameters) == false){
+			return 0;
+		}
+
+		x = atoi(parameters[0]);
+		y = atoi(parameters[1]);
+
+		if(check_atoi_error("X", x, parameters[0]) || check_atoi_error("Y", y, parameters[1])){
+			return 0;
+		}
+
+		if(!check_range("X", x, 1, N) || !check_range("Y", y, 1, N)){
+			return 0;
+		}
+
+		if(board_is_erroneous(current_board) == true){
+			printf("Error: board is erroneous\n");
+			return 0;
+		}
+
+		if(current_board->board[y - 1][x - 1].is_fixed == 1){
+			printf("Error: the provided cell is fixed\n");
+			return 0;
+		}
+
+		if(current_board->board[y - 1][x - 1].value != 0){
+			printf("Error: the provided cell contains a value already\n");
+			return 0;
+		}
+
+		handle_hint_and_ghint_command(current_game, y - 1, x - 1, 0);
+		return 0;
 	}
 
 	/*-------------------------------num_solutions command------------------------------*/
 	else if(strcmp(command_name, "num_solutions") == 0){
-
-		return_value = check_call_func(current_game, "num_solutions", NUM_SOLUTIONS_NUM_PARAMS, "num_solutions",
-				handle_num_solutions_command, NUM_SOLUTIONS_MODES);
-
-		if(return_value < 0){
+		if(!right_mode(current_game, NUM_SOLUTIONS_MODES, "num_solutions")){
 			return 0;
 		}
+
+		if(check_num_params(NUM_SOLUTIONS_NUM_PARAMS, command, "num_solutions", parameters) == false){
+			return 0;
+		}
+
+		if(board_is_erroneous(current_board) == true){
+			printf("Error: board is erroneous\n");
+			return 0;
+		}
+
+		handle_num_solution_command(current_game);
+		return 0;
 	}
 
 
 	/*-------------------------------autofill command------------------------------*/
 	else if(strcmp(command_name, "autofill") == 0){
-
-		return_value = check_call_func(current_game, "autofill", AUTOFILL_NUM_PARAMS, "autofill",
-				handle_autofill_command, AUTOFILL_MODES);
-
-		if(return_value < 0){
+		if(!right_mode(current_game, AUTOFILL_MODES, "autofill")){
 			return 0;
 		}
+
+		if(check_num_params(AUTOFILL_NUM_PARAMS, command, "autofill", parameters) == false){
+			return 0;
+		}
+
+		if(board_is_erroneous(current_board) == true){
+			printf("Error: board is erroneous\n");
+			return 0;
+		}
+
+		handle_autofill_command(current_game);
+		return 0;
 	}
 
 
 	/*-------------------------------reset command------------------------------*/
 	else if(strcmp(command_name, "reset") == 0){
-
-		return_value = check_call_func(current_game, "reset", RESET_NUM_PARAMS, "reset",\
-				handle_reset_command, RESET_MODES);
-
-		if(return_value < 0){
+		if(!right_mode(current_game, RESET_MODES, "reset")){
 			return 0;
 		}
+
+		if(check_num_params(RESET_NUM_PARAMS, command, "reset", parameters) == false){
+			return 0;
+		}
+
+		handle_reset_command(current_game);
+		return 0;
 	}
 
 	/*-------------------------------exit command------------------------------*/
 	else if(strcmp(command_name, "exit") == 0){
-
-		return_value = check_call_func(current_game, "exit", EXIT_NUM_PARAMS, "exit",
-				handle_exit_command, EXIT_MODES);
-
-		if(return_value < 0){
-			return -1;
+		if(!right_mode(current_game, EXIT_MODES, "exit")){
+			return 0;
 		}
-	}
 
+		if(check_num_params(EXIT_NUM_PARAMS, command, "exit", parameters) == false){
+			return 0;
+		}
+
+		handle_exit_command(current_game);
+		return -1;
+	}
 
 	/*-------------------------------another command------------------------------*/
 	else{
-		print_flush("This command does not exists\n");
+		printf("This command does not exists\n");
 	}
 	return 0;
 }

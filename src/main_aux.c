@@ -15,18 +15,13 @@
 #include "game_utils.h"
 
 
-void print_flush(char* str){
-	printf("%s", str);
-	fflush(stdout);
-}
-
 void memory_alloc_problem() {
-	print_flush("Error in allocating memory.\n");
+	printf("Error in allocating memory.\n");
 	exit(EXIT_FAILURE);
 }
 
 int get_command_from_user(char command[COMMAND_SIZE + 1]){ /*from hw3*/
-	print_flush("enter command please: ");
+	printf("enter command please: ");
 
 	if(fgets(command, (COMMAND_SIZE + 1), stdin) == NULL){
 		return -1;
@@ -110,12 +105,11 @@ int cell_in_right_format(int n, int m, int cell){
 	}
 }
 
-int file_not_right_format(FILE *fp){
-	print_flush("Error, file is not in the right format\n");
+void file_not_right_format(FILE *fp){
+	printf("Error, file is not in the right format\n");
 	if(fclose(fp) != 0){
-		print_flush("Error, was not able to close file");
+		printf("Error, was not able to close file");
 	}
-	return -1;
 }
 
 int load_game_from_file(game* current_game, char* path){
@@ -130,20 +124,22 @@ int load_game_from_file(game* current_game, char* path){
 	fp = fopen(path, "r");
 
 	if(fp == NULL){
-		print_flush("Error, was not able to open file\n");
-		return(-1);
+		printf("Error, was not able to open file\n");
+		return false;
 	}
 
 	num_read = fscanf(fp, "%d", &new_m);
 
 	if(num_read != 1 || new_m == 0){
-		return(file_not_right_format(fp));
+		file_not_right_format(fp);
+		return false;
 	}
 
 	num_read = fscanf(fp, "%d", &new_n);
 
 	if(num_read != 1 || new_n == 0){
-		return(file_not_right_format(fp));
+		file_not_right_format(fp);
+		return false;
 	}
 
 	new_board = create_board(new_n, new_m);
@@ -152,7 +148,8 @@ int load_game_from_file(game* current_game, char* path){
 		for(j = 0; j < new_n*new_m; j++){
 			num_read = fscanf(fp, "%d", &cell_value);
 			if(!cell_in_right_format(new_n, new_m, cell_value)){
-				return(file_not_right_format(fp));
+				file_not_right_format(fp);
+				return false;
 			}
 			new_board->board[i][j].value = cell_value;
 
@@ -164,14 +161,15 @@ int load_game_from_file(game* current_game, char* path){
 				new_board->board[i][j].is_fixed = 0;
 			}
 			else{
-				return(file_not_right_format(fp));
+				file_not_right_format(fp);
+				return false;
 			}
 		}
 	}
 
 	list_push(current_game->undo_redo_list, new_board);
 
-	return 0;
+	return true;
 }
 
 int save_game_to_file(game* current_game, char* path){
@@ -187,8 +185,8 @@ int save_game_to_file(game* current_game, char* path){
 	fp = fopen(path, "w+");
 
 	if(fp == NULL){
-		print_flush("Error, was not able to open file\n");
-		return -1;
+		printf("Error, was not able to open file\n");
+		return false;
 	}
 
 	fprintf(fp, "%d %d\n", m, n);
@@ -210,12 +208,12 @@ int save_game_to_file(game* current_game, char* path){
 	}
 
 	if(fclose(fp) != 0){
-		print_flush("Error, was not able to close file\n");
-		return -1;
+		printf("Error, was not able to close file\n");
+		return false;
 	}
 
 	printf("Board saved to file\n");
-	return 0;
+	return true;
 }
 
 
@@ -360,10 +358,9 @@ int num_empty_cells(board* board_to_check){
 	return count;
 }
 
-int check_atoi_error(char* param_name, int after_convert, char* before_convert, int N){
+int check_atoi_error(char* param_name, int after_convert, char* before_convert){
 	if(after_convert == 0 && strcmp(before_convert, "0") != 0){
-		printf("Error: parameter %s is invalid, should be a number in range 1 - %d\n", param_name, N);
-		fflush(stdout);
+		printf("Error: parameter %s is invalid, should be a positive number\n", param_name);
 		return true;
 	}
 	return false;
@@ -372,7 +369,6 @@ int check_atoi_error(char* param_name, int after_convert, char* before_convert, 
 int check_range(char* param, int num_to_check, int lower_bound, int upper_bound){
 	if(num_to_check < lower_bound || num_to_check > upper_bound){
 		printf("Error: parameter %s is not in range, should be in range %d - %d\n",param, lower_bound, upper_bound);
-		fflush(stdout);
 		return false;
 	}
 	return true;
@@ -411,6 +407,59 @@ void keep_y_cells(board* board_to_clear, int y){
 	return;
 }
 
+void print_changes_boards(board* first_board, board* second_board){
+	int n = first_board->n;
+	int m = first_board->m;
+	int N = n*m;
 
+	for (int i = 0; i < N; i++){
+		for (int j = 0; j < N; j++){
+			if (first_board->board[i][j].value != second_board->board[i][j].value){
+				printf("Cell (%d, %d) was changed from value %d to value %d.\n", i + 1, j + 1, first_board->board[i][j].value , second_board->board[i][j].value);
+			}
+		}
+	}
+	return;
+}
 
+void set_array_zero(int* arr, int size){
+	int i;
+	for(i = 0; i < size; i++){
+		arr[i] = 0;
+	}
+}
 
+int board_is_completed(board* current_board){
+	if(check_board(current_board) == true){
+		printf("Puzzle was solved successfully! Congratulations!\n");
+		return true;
+	}
+	else{
+		printf("The solution you provided is erroneous, you can use the undo command\n");
+		return false;
+	}
+}
+
+void cell_legal_values(board* current_board, int* legal_values, int N, int row, int col){
+	for(int i = 0; i < N; i++){
+		if (is_legal_cell(current_board, row, col, i + 1)){
+			legal_values[i] = 1;
+		}
+	}
+}
+
+void find_empty_cell(board* current_board, int* empty_cell_row, int* empty_cell_col, int r, int N){
+	int cnt = 0;
+	for(int i = 0; i < N; i++){
+		for(int j = 0; j < N; j++){
+			if(current_board->board[i][j].value == 0){
+				cnt++;
+				if(cnt == r){
+					empty_cell_row = &i;
+					empty_cell_col = &j;
+					return;
+				}
+			}
+		}
+	}
+}

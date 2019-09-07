@@ -21,95 +21,83 @@
 
 /*
  * handle the solve command, starts a puzzle in solve mode, loaded from file.
- * returns 0 in success, -1 otherwise.
  */
-int handle_solve_command(game* current_game, char* parameters[MAX_PARAMETERS], char* command_name);
+void handle_solve_command(game* current_game, char* path);
 
 /*
  * handle the edit command, starts a puzzle in edit mode, loaded from file.
- * returns 0 in success, -1 otherwise.
  */
-int handle_edit_command(game* current_game, char* parameters[MAX_PARAMETERS], char* command_name);
+void handle_edit_command(game* current_game, char* path);
 
 /*
  * handle the mark_errors command, sets the mark errors setting to X.
- * returns 0 in success, -1 otherwise.
  */
-int handle_mark_errors_command(game* current_game, char* parameters[MAX_PARAMETERS], char* command_name);
 
+void handle_mark_errors_command(game* current_game, int setting);
 /*
  * handle the print_board command, prints the board to the user.
- * returns 0 in success, -1 otherwise.
  */
-int handle_print_board_command(game* current_game, char* parameters[MAX_PARAMETERS], char* command_name);
+void handle_print_board_command(game* current_game);
 
 /*
  * handle the set command, sets the value of cell <X,Y> to Z.
- * returns 0 in success, -1 otherwise.
  */
-int handle_set_command(game* current_game, char* parameters[MAX_PARAMETERS], char* command_name);
+void handle_set_command(game* current_game,int row, int col, int new_value);
 
 /*
  * handle the validate command, validates the current board using ILP.
- * returns 0 in success, -1 otherwise.
  */
-int handle_validate_command(game* current_game, char* parameters[MAX_PARAMETERS], char* command_name);
+void handle_validate_command(game* current_game);
 
 /*
  * handle the guess command, guesses a solution to the current board using LP.
- * returns 0 in success, -1 otherwise.
  */
-int handle_guess_command(game* current_game, char* parameters[MAX_PARAMETERS], char* command_name);
+void handle_guess_command(game* current_game, float threshold);
 
 /*
  * handle the generate command, generates a puzzle by randomly filling x empty
  * cells with legal value.
- * returns 0 in success, -1 otherwise.
  */
-int handle_generate_command(game* current_game, char* parameters[3], char* command_name);
+void handle_generate_command(game* current_game, int x, int y);
 
 /*
  * handle the undo command and the redo commands.
  * undos or redos the previous move done by the user.
- * returns 0 in success, -1 otherwise.
  */
-int handle_undo_redo_command(game* current_game, char* parameters[MAX_PARAMETERS], char* command_name);
+void handle_undo_redo_command(game* current_game, int command);
 
 /*
  * handle the save command, saves the current game board to a specified file.
  * returns 0 in success, -1 otherwise.
  */
-int handle_save_command(game* current_game, char* parameters[MAX_PARAMETERS], char* command_name);
+void handle_save_command(game* current_game, char* path);
 
 /*
  * handle the hint command and the guess hint command.
  * hint -  give a hint to the user by showing a solution of a single cell x,y.
  * guessHint - shows a guess to the user for single cell x,y
- * returns 0 in success, -1 otherwise.
  */
-int handle_hint_and_ghint_command(game* current_game, char* cells[MAX_PARAMETERS], char* command_name);
+void handle_hint_and_ghint_command(game* current_game, int row, int col,int command);
 
 /*
  * handle the num_solutions command, prints the number of solutions
- * for the current board, returns 0 in success, -1 otherwise.
+ * for the current board.
  */
-int handle_num_solutions_command(game* current_game, char* parameters[MAX_PARAMETERS], char* command_name);
+void handle_num_solution_command(game* current_game);
 
 /*
  * handle the autofill command, automatically fill "obvious values
- * returns 0 in success, -1 otherwise.
  */
-int handle_autofill_command(game* current_game, char* parameters[MAX_PARAMETERS], char* command_name);
+void handle_autofill_command(game* current_game);
 
 /*
  * handle the reset command undo all moves.
  */
-int handle_reset_command(game* current_game, char* parameters[MAX_PARAMETERS], char* command_name);
+void handle_reset_command(game* current_game);
 
 /*
  * handle the exit command, exits the program. (returns -1 if exits successfully, otherwise
- * returns 0 - to indicate there was a problem freeing the memory - unlikely).
  */
-int handle_exit_command(game* current_game, char* parameters[MAX_PARAMETERS], char* command_name);
+void handle_exit_command(game* current_game);
 
 #endif /* COMMANDS_H_ */

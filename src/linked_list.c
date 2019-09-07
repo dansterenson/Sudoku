@@ -15,7 +15,6 @@ Node* create_node(void* data){
 	node = (Node*) calloc(1, sizeof(Node));
 	if(node == NULL){ /*problem allocating memory*/
 		printf("Error in allocating memory.\n");
-		fflush(stdout);
 		exit(EXIT_FAILURE);
 	}
 	else{

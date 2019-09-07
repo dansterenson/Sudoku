@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "parser.h"
-#include "SPBufferset.h"
 
 
 int main() {
@@ -18,9 +17,8 @@ int main() {
 	char command[COMMAND_SIZE + 1];
 	game* current_game = create_game(3, 3, init, true);
 
-	SP_BUFF_SET();
 
-	print_flush("Welcome To Our Sudoku Game, start playing\n");
+	printf("Welcome To Our Sudoku Game, start playing\n");
 
 	while(!need_to_exit){
 
@@ -30,7 +28,7 @@ int main() {
 		}
 
 		if(get_command_from_user(command) == -1){
-			print_flush("Exiting...\n");
+			printf("Exiting...\n");
 			return EXIT_FAILURE;
 		}
 
@@ -40,7 +38,7 @@ int main() {
 		}
 	}
 
-	print_flush("Exiting...\n");
+	printf("Exiting...\n");
 
 	return 0;
 
