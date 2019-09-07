@@ -9,6 +9,7 @@
 #include "gurobi_structs.h"
 #include "gurobi_helper_utils.h"
 #include "gurobi_solver_LP.h"
+#include "game_utils.h"
 #include "gurobi_c.h"
 
 void freeGRB_vtype_obj (GRBenv *env, GRBmodel *model, GRB_vars* vars_ptr, char* vtype, double* obj);
@@ -22,7 +23,7 @@ int gurobi_main_LP(board* game_board, double chosen_threshold)
   GRBenv   *env   = NULL;
   GRBmodel *model = NULL;
   char*      vtype = NULL;
-  double* 	obj = NULL
+  double* 	obj = NULL;
   int       error_occurred = FALSE;
   int board_dimensions = game_board->n * game_board->m;
 
@@ -32,7 +33,6 @@ int gurobi_main_LP(board* game_board, double chosen_threshold)
 		printf("ERROR %d GRBloadenv(): %s\n", error_occurred, GRBgeterrormsg(env));
 		printf("GUROBI RELATED ERROR OCCURED.\n");
 		fflush(stdout);
-		//	  GRBfreeenv(env);
 		return -1;
   }
 
@@ -52,7 +52,6 @@ int gurobi_main_LP(board* game_board, double chosen_threshold)
 		printf("ERROR %d GRBnewmodel(): %s\n", error_occurred, GRBgeterrormsg(env));
 		printf("GUROBI RELATED ERROR OCCURED.\n");
 		fflush(stdout);
-		//	  GRBfreemodel(model);
 		GRBfreeenv(env);
 		return -1;
   }
@@ -200,7 +199,8 @@ int gurobi_main_LP(board* game_board, double chosen_threshold)
 
 	   /* If no error occurred - use the attributes to solve the board */
 	   for(i = 0; i < vars_ptr->var_count; i++){
-		   if (is_legal_cell(game_board, vars_ptr->vars[i]->i, vars_ptr->vars[i]->j, vars_ptr->vars[i]->k)){
+		   if (is_legal_cell(game_board, vars_ptr->vars[i]->i, vars_ptr->vars[i]->j, vars_ptr->vars[i]->k)
+				   && sol[i] >= chosen_threshold){
 			   game_board->board[vars_ptr->vars[i]->i][vars_ptr->vars[i]->j].value = vars_ptr->vars[i]->k;
 		   }
 	   }
@@ -228,7 +228,7 @@ int gurobi_main_LP(board* game_board, double chosen_threshold)
 void freeGRB_vtype_obj (GRBenv *env, GRBmodel *model, GRB_vars* vars_ptr, char* vtype, double* obj) {
 		GRBfreemodel(model);
 		GRBfreeenv(env);
-		free_grb_vars_pointer_memory(vars_ptr);
+		free_all_grb_vars(vars_ptr);
 		free(vtype);
 		free(obj);
 }

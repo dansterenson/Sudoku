@@ -7,6 +7,7 @@
 #include "structures.h"
 #include "gurobi_structs.h"
 #include "gurobi_helper_utils.h"
+#include "game_utils.h"
 #include "gurobi_c.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -58,7 +59,7 @@ int get_valid_vars_count(board* game_board, int N) {
 		for (j = 0 ; j < N; j++){
 			if (game_board->board[i][j].value == 0){
 				for (k = 1 ; k <= N; k++){
-					if (is_legal_cell(board,i,j,k)) {
+					if (is_legal_cell(game_board,i,j,k)) {
 						count++;
 					}
 				}
@@ -77,7 +78,7 @@ void map_vars_to_cell(board* game_board, GRBvariable** vars, int N) {
 		for (j = 0 ; j < N; j++){
 			if (game_board->board[j][i].value == 0){
 				for (k = 1 ; k <= N; k++){
-					if (is_legal_cell(board,i,j,k)) {
+					if (is_legal_cell(game_board,i,j,k)) {
 						GRBvariable* tmp = (GRBvariable*) calloc(1, sizeof(GRBvariable));
 						tmp->i = i;
 						tmp->j = j;
@@ -181,7 +182,6 @@ int handle_block_constraints(board* game_board, GRB_vars* vars, GRBmodel *model)
 	int block_start_row = 0;
 	int block_start_col = 0;
 	int error_occurred = FALSE;
-	int current_position = 0;
 	int rows_of_blocks = game_board->n;
 	int cols_of_blocks = game_board->m;
 	int N = rows_of_blocks * cols_of_blocks;
@@ -346,8 +346,8 @@ int handle_constraints_LP(GRB_vars* vars_ptr, GRBmodel *model){
 	int i;
 	int index_ptr[1];
 	double val[1];
-	val[0] = 1.0;
 	int error_occurred = FALSE;
+	val[0] = 1.0;
 
 	for (i = 0; i < vars_ptr->var_count; i++){
 		index_ptr[0] = i;
