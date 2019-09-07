@@ -15,17 +15,17 @@
  * Iterate over board cells and count the number of cells (or vars) we can fill
  * with valid values. return that amount.
  */
-int get_valid_vars_count(board* game_board, int dimensions);
+int get_valid_vars_count(board* game_board, int N);
 
 /* Map each variable to it's specific cell in the board
  * and it's appropriate value
  */
-void map_vars_to_cell(board* game_board, GRBvariable** vars, int dimensions);
+void map_vars_to_cell(board* game_board, GRBvariable** vars, int N);
 
 GRB_vars* get_grb_vars(board* game_board){
 	int var_count;
 	GRBvariable** vars;
-	int dimensions = game_board->n * game_board->m;
+	int N = game_board->n * game_board->m;
 
 	GRB_vars* grb_vars_ptr = (GRB_vars*)calloc(1, sizeof(GRB_vars));
 
@@ -34,7 +34,7 @@ GRB_vars* get_grb_vars(board* game_board){
 		exit(1);
 	}
 
-	var_count = get_valid_vars_count(game_board, dimensions);
+	var_count = get_valid_vars_count(game_board, N);
 	grb_vars_ptr->var_count = var_count;
 
 	vars = (GRBvariable**)calloc(var_count, sizeof(GRBvariable*));
@@ -44,20 +44,20 @@ GRB_vars* get_grb_vars(board* game_board){
 		exit(1);
 	}
 
-	map_vars_to_cell(game_board, vars, dimensions);
+	map_vars_to_cell(game_board, vars, N);
 
 	grb_vars_ptr->vars = vars;
 	return grb_vars_ptr;
 }
 
-int get_valid_vars_count(board* game_board, int dimensions) {
+int get_valid_vars_count(board* game_board, int N) {
 	int i,j,k;
 	int count = 0;
 
-	for (i = 0 ; i < dimensions; i++){
-		for (j = 0 ; j < dimensions; j++){
+	for (i = 0 ; i < N; i++){
+		for (j = 0 ; j < N; j++){
 			if (game_board->board[i][j].value == 0){
-				for (k = 1 ; k <= dimensions; k++){
+				for (k = 1 ; k <= N; k++){
 					if (is_legal_cell(board,i,j,k)) {
 						count++;
 					}
@@ -69,14 +69,14 @@ int get_valid_vars_count(board* game_board, int dimensions) {
 	return count;
 }
 
-void map_vars_to_cell(board* game_board, GRBvariable** vars, int dimensions) {
+void map_vars_to_cell(board* game_board, GRBvariable** vars, int N) {
 	int i,j,k;
 	int count = 0;
 
-	for (i = 0 ; i < dimensions; i++){
-		for (j = 0 ; j < dimensions; j++){
+	for (i = 0 ; i < N; i++){
+		for (j = 0 ; j < N; j++){
 			if (game_board->board[j][i].value == 0){
-				for (k = 1 ; k <= dimensions; k++){
+				for (k = 1 ; k <= N; k++){
 					if (is_legal_cell(board,i,j,k)) {
 						GRBvariable* tmp = (GRBvariable*) calloc(1, sizeof(GRBvariable));
 						tmp->i = i;
@@ -94,24 +94,25 @@ void map_vars_to_cell(board* game_board, GRBvariable** vars, int dimensions) {
 int handle_row_col_constraints(Constraints row_or_column, board* game_board, GRB_vars* vars, GRBmodel *model){
 	int* index_ptr;
 	double* val;
-	int i,k;
 	int current_index;
 	int count = 0;
 	int error_occurred = FALSE;
 	int current_position = 0;
-	int dimensions = game_board->n * game_board->m;
+	int i = 0;
+	int k = 0;
+	int N = game_board->n * game_board->m;
 
-	for(i = 0; current_position < dimensions; current_position++) {
-		for (k = 1; k <= dimensions; k++){
+	for(current_position = 0; current_position < N; current_position++) {
+		for (k = 1; k <= N; k++){
 			count = 0;
 			for(current_index = 0; current_index < vars->var_count; current_index++) {
 				if(row_or_column == ROW){
-					if(vars->vars[current_index]->j == current_position && vars->vars[current_index]->k == k) {
+					if(vars->vars[current_index]->i == current_position && vars->vars[current_index]->k == k) {
 						count++;
 					}
 				}
 				else{
-					if(vars->vars[current_index]->i == current_position && vars->vars[current_index]->k == k) {
+					if(vars->vars[current_index]->j == current_position && vars->vars[current_index]->k == k) {
 						count++;
 					}
 				}
@@ -132,17 +133,18 @@ int handle_row_col_constraints(Constraints row_or_column, board* game_board, GRB
 				exit(1);
 			}
 
-			i = 0;
-			for(current_index = 0; current_index < vars->var_count; current_index++) {
-				if(row_or_column == ROW){
-					if(vars->vars[current_index]->j == current_position  && vars->vars[current_index]->k == k) {
+			if(row_or_column == ROW) {
+				for(current_index = 0; current_index < vars->var_count; current_index++) {
+					if(vars->vars[current_index]->i == current_position  && vars->vars[current_index]->k == k) {
 						val[i] = 1.0;
 						index_ptr[i] = current_index;
 						i++;
 					}
 				}
-				else{
-					if(vars->vars[current_index]->i == current_position  && vars->vars[current_index]->k == k) {
+			}
+			else {
+				for(current_index = 0; current_index < vars->var_count; current_index++) {
+					if(vars->vars[current_index]->j == current_position  && vars->vars[current_index]->k == k) {
 						val[i] = 1.0;
 						index_ptr[i] = current_index;
 						i++;
@@ -169,7 +171,7 @@ int handle_row_col_constraints(Constraints row_or_column, board* game_board, GRB
 int handle_block_constraints(board* game_board, GRB_vars* vars, GRBmodel *model) {
 	int* index_ptr;
 	double* val;
-	int i,k;
+	int k;
 	int count;
 	int current_index;
 	int current_block;
@@ -180,22 +182,23 @@ int handle_block_constraints(board* game_board, GRB_vars* vars, GRBmodel *model)
 	int block_start_col = 0;
 	int error_occurred = FALSE;
 	int current_position = 0;
-	int board_rows = game_board->n;
-	int board_cols = game_board->m;
-	int dimensions = board_rows * board_cols;
+	int rows_of_blocks = game_board->n;
+	int cols_of_blocks = game_board->m;
+	int N = rows_of_blocks * cols_of_blocks;
+	int i = 0;
 
-	for(current_block = 0; current_block < dimensions; current_block++) {
+	for(current_block = 0; current_block < N; current_block++) {
 
-		for (k = 1; k <= dimensions; k++){
+		for (k = 1; k <= N; k++){
 			count = 0;
 			for(current_index = 0; current_index < vars->var_count; current_index++) {
-				current_var_col = vars->vars[current_index]->i;
-				current_var_row = vars->vars[current_index]->j;
+				current_var_row = vars->vars[current_index]->i;
+				current_var_col = vars->vars[current_index]->j;
 				current_var_value = vars->vars[current_index]->k;
 
 				if(current_var_value == k && block_start_col <= current_var_col
-						&& current_var_col < block_start_col + board_rows &&
-						current_var_row < block_start_row + board_cols &&
+						&& current_var_col < block_start_col + rows_of_blocks &&
+						current_var_row < block_start_row + cols_of_blocks &&
 						block_start_row <= current_var_row ) {
 					count++;
 				}
@@ -205,7 +208,7 @@ int handle_block_constraints(board* game_board, GRB_vars* vars, GRBmodel *model)
 				continue;
 			}
 
-			val = (double*)calloc(cnt, sizeof(double));
+			val = (double*)calloc(count, sizeof(double));
 			if (val==NULL){
 				printf("ERROR: memory allocation failed");
 				exit(1);
@@ -217,15 +220,14 @@ int handle_block_constraints(board* game_board, GRB_vars* vars, GRBmodel *model)
 				exit(1);
 			}
 
-			i = 0;
 			for(current_index = 0; current_index < vars->var_count; current_index++) {
-				current_var_col = vars->vars[current_index]->i;
-				current_var_row = vars->vars[current_index]->j;
+				current_var_row = vars->vars[current_index]->i;
+				current_var_col = vars->vars[current_index]->j;
 				current_var_value = vars->vars[current_index]->k;
 
 				if(current_var_value == k && block_start_col <= current_var_col
-						&& current_var_col < block_start_col + board_rows &&
-						current_var_row < block_start_row + board_cols &&
+						&& current_var_col < block_start_col + rows_of_blocks &&
+						current_var_row < block_start_row + cols_of_blocks &&
 						block_start_row <= current_var_row ) {
 					val[i] = 1.0;
 					index_ptr[i] = current_index;
@@ -244,9 +246,9 @@ int handle_block_constraints(board* game_board, GRB_vars* vars, GRBmodel *model)
 			}
 		}
 
-		block_start_col += board_rows;
-		if (block_start_col == dimensions) {
-			block_start_row += board_cols;
+		block_start_col += rows_of_blocks;
+		if (block_start_col == N) {
+			block_start_row += cols_of_blocks;
 			block_start_col = 0;
 		}
 	}
@@ -264,14 +266,14 @@ int handle_single_value_constraints(GRB_vars* vars, GRBmodel *model) {
 	int count = 0;
 	int error_occurred = FALSE;
 
-	int cell_y_coordinates = vars->vars[0]->j;
+	int cell_y_coordinates = vars->vars[0]->i;
 
 	/* Iterate over vars to handle the constraint so that each cell has only one value. */
-	for(i = 0 ; current_index < vars->var_count; current_index++) {
+	for(current_index = 0 ; current_index < vars->var_count; current_index++) {
 		var = vars->vars[current_index];
 
-		if (var->j != cell_y_coordinates) {
-			cell_y_coordinates = var->j;
+		if (var->i != cell_y_coordinates) {
+			cell_y_coordinates = var->i;
 
 			val = (double*)calloc(count, sizeof(double));
 			if (val==NULL){

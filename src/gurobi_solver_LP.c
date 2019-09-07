@@ -201,7 +201,7 @@ int gurobi_main_LP(board* game_board, double chosen_threshold)
 	   /* If no error occurred - use the attributes to solve the board */
 	   for(i = 0; i < vars_ptr->var_count; i++){
 		   if (is_legal_cell(game_board, vars_ptr->vars[i]->i, vars_ptr->vars[i]->j, vars_ptr->vars[i]->k)){
-			   game_board->board[vars_ptr->vars[i]->j][vars_ptr->vars[i]->i].value = vars_ptr->vars[i]->k;
+			   game_board->board[vars_ptr->vars[i]->i][vars_ptr->vars[i]->j].value = vars_ptr->vars[i]->k;
 		   }
 	   }
 

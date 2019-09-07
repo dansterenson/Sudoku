@@ -180,7 +180,7 @@ int gurobi_main_ILP(board* game_board, int should_fill_board)
 		   /* If no error occurred - use the attributes to solve the board */
 		   for(i = 0; i < vars_ptr->var_count; i++){
 			   if (sol[i] == 1.0){
-				   game_board->board[vars_ptr->vars[i]->j][vars_ptr->vars[i]->i].value = vars_ptr->vars[i]->k;
+				   game_board->board[vars_ptr->vars[i]->i][vars_ptr->vars[i]->j].value = vars_ptr->vars[i]->k;
 			   }
 		   }
 
