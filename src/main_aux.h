@@ -14,6 +14,7 @@
 
 #define MAX_PARAMETERS 3
 #define COMMAND_SIZE 256
+#define NUM_COMMANDS 17
 #define TRUE 1
 #define FALSE 0
 

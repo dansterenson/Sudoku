@@ -11,6 +11,26 @@
 #include "structures.h"
 #include "main_aux.h"
 
+typedef enum {
+	E_SOLVE_CMD,
+	E_EDIT_CMD,
+	E_MARK_ERRORS_CMD,
+	E_PRINT_BOARD_CMD,
+	E_SET_CMD,
+	E_VALIDATE_CMD,
+	E_GUESS_CMD,
+	E_GENERATE_CMD,
+	E_UNDO_CMD,
+	E_REDO_CMD,
+	E_SAVE_CMD,
+	E_HINT_CMD,
+	E_GUESS_HINT_CMD,
+	E_NUM_SOLUTIONS_CMD,
+	E_AUTOFILL_CMD,
+	E_RESET_CMD,
+	E_EXIT_CMD,
+}command_e;
+
 #define GENERATE_MAX_ITERATIONS 1000
 
 
@@ -83,7 +103,7 @@ void handle_hint_and_ghint_command(game* current_game, int row, int col,int comm
  * handle the num_solutions command, prints the number of solutions
  * for the current board.
  */
-void handle_num_solution_command(game* current_game);
+void handle_num_solutions_command(game* current_game);
 
 /*
  * handle the autofill command, automatically fill "obvious values

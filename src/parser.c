@@ -13,6 +13,62 @@
 #include "commands.h"
 #include <string.h>
 
+#define UNUSED(x) (void)(x);
+
+void parse_solve_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game);
+
+void parse_edit_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game);
+
+void parse_mark_errors_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game);
+
+void parse_print_board_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game);
+
+void parse_set_command(struct command_desc* pcommand_descriptor, char** argv, int argc, game* current_game);
+
+void parse_validate_command(struct command_desc* pcommand_descriptor, char** argv, int argc, game* current_game);
+
+void parse_guess_command(struct command_desc* pcommand_descriptor, char** argv, int argc, game* current_game);
+
+void parse_generate_command(struct command_desc* pcommand_descriptor, char** argv, int argc, game* current_game);
+
+void parse_undo_command(struct command_desc* pcommand_descriptor, char** argv, int argc, game* current_game);
+
+void parse_redo_command(struct command_desc* pcommand_descriptor, char** argv, int argc, game* current_game);
+
+void parse_save_command(struct command_desc* pcommand_descriptor, char** argv, int argc, game* current_game);
+
+void parse_hint_command(struct command_desc* pcommand_descriptor, char** argv, int argc, game* current_game);
+
+void parse_guess_hint_command(struct command_desc* pcommand_descriptor, char** argv, int argc, game* current_game);
+
+void parse_num_solutions_command(struct command_desc* pcommand_descriptor, char** argv, int argc, game* current_game);
+
+void parse_autofill_command(struct command_desc* pcommand_descriptor, char** argv, int argc, game* current_game);
+
+void parse_reset_command(struct command_desc* pcommand_descriptor, char** argv, int argc, game* current_game);
+
+void parse_exit_command(struct command_desc* pcommand_descriptor, char** argv, int argc, game* current_game);
+
+
+static command_descriptor_t commands[] = {
+		{"solve","solve X", E_SOLVE_CMD, 1, 1, (init | edit | solve), parse_solve_command},
+		{"edit","edit X", E_SOLVE_CMD, 0, 1, (init | edit | solve), parse_edit_command},
+		{"mark_errors","mark_errors X", E_MARK_ERRORS_CMD, 1, 1, (solve), parse_mark_errors_command},
+		{"print_board", "print_board", E_PRINT_BOARD_CMD, 0, 0, (edit | solve), parse_print_board_command},
+		{"set", "set X Y Z", E_SET_CMD, 3, 3, (edit | solve), parse_set_command},
+		{"validate", "validate", E_VALIDATE_CMD, 0, 0, (edit | solve), parse_validate_command},
+		{"guess", "guess X", E_GUESS_CMD, 1, 1, (solve), parse_guess_command},
+		{"generate", "generate X Y", E_GENERATE_CMD, 2, 2, (edit), parse_generate_command},
+		{"undo", "undo", E_UNDO_CMD, 0, 0, (edit | solve), parse_undo_command},
+		{"redo", "redo", E_REDO_CMD, 0, 0, (edit | solve), parse_redo_command},
+		{"save", "save X", E_SAVE_CMD, 1, 1, (edit | solve), parse_save_command},
+		{"hint", "hint X Y", E_HINT_CMD, 2, 2, (solve), parse_hint_command},
+		{"guess_hint", "guess_hint X Y", E_GUESS_HINT_CMD, 2, 2, (solve), parse_guess_hint_command},
+		{"num_solutions", "num_solutions", E_NUM_SOLUTIONS_CMD, 0, 0, (edit | solve), parse_num_solutions_command},
+		{"autofill", "autofill", E_AUTOFILL_CMD, 0, 0, (solve), parse_autofill_command},
+		{"reset", "reset", E_RESET_CMD, 0, 0, (edit | solve), parse_reset_command},
+		{"exit","exit", E_EXIT_CMD, 0, 0, (edit | solve), parse_exit_command},
+};
 
 const char * mode_for_message[] = {
 		"",
@@ -26,508 +82,372 @@ const char * mode_for_message[] = {
 
 const char delimitor[8] = " \t\r\n";
 
-void clean(char* command){
-	free(command);
-}
-
-int right_mode(game* current_game, int modes_availabilty, char* command_name){
-	if((current_game->mode & modes_availabilty) == 0){
-		printf("Error: %s command is only available in %s\n", command_name, mode_for_message[modes_availabilty]);
-		return false;
+void clean(char** argv,int argc){
+	for(int i = 0; i < argc; i++){
+		free(argv[i]);
 	}
-	return true;
 }
 
-int check_num_params(int number_of_params, char* command, char* format, char* parameters[MAX_PARAMETERS]){
-	char* too_many;
-	char* param;
+int find_command_and_params(char* command, command_descriptor_t** command_descriptor, char** argv, int* argc){
 	char* command_name;
-
+	char* param;
+	int j = 0;
 	command_name = strtok(command, delimitor);
 
-	for(int i = 0; i < number_of_params; i++){
-		param = strtok(NULL, delimitor);
-
-		if(param == NULL && strcmp(command_name, "edit") != 0){
-			printf("Error: some parameters are missing in %s command, right format: %s.\n", command_name, format);
-			return false;
+	for (int i = 0; i < sizeof(commands) / sizeof(command_descriptor_t); i++){
+		if(strcmp(command_name, commands[i].command_string) == 0){
+			*command_descriptor = &commands[i];
 		}
-		parameters[i] = param;
 	}
-	too_many = strtok(NULL, delimitor);
-	if(too_many != NULL){
-		printf("Error: there are too many parameters, right format: %s.\n", format);
+
+	if(command_descriptor == NULL){
+		printf("This command does not exists\n");
 		return false;
 	}
+
+	param = strtok(NULL, delimitor);
+
+	while(param != NULL){
+		argv[j] = malloc(strlen(param) + 1);
+		strcpy(argv[j], param);
+		j++;
+		param = strtok(NULL, delimitor);
+	}
+
+	*argc = j;
 	return true;
 }
 
 
-int command_parser(char* origin_command, game* current_game){
-	char* command = calloc(strlen(origin_command)+1, sizeof(char));
-	char* command_name;
-	int x, y, z;
-	float threshold;
-	char* parameters[MAX_PARAMETERS];
-	board* current_board = current_game->undo_redo_list->head->data;
-	int N = current_board->m*current_board->n;
+int parse_command(char* command, game* current_game){
+	command_descriptor_t* command_descriptor = NULL;
+	char* argv[COMMAND_SIZE];
+	int argc;
 
-	strcpy(command, origin_command);
-	command_name = strtok(origin_command, delimitor); /*get the command name*/
-
-	if(command_name == NULL){ /*empty command*/
-		clean(command);
-		return 0;
-	}
-
-	/*-------------------------------solve command------------------------------*/
-	else if(strcmp(command_name, "solve") == 0){
-
-		if(check_num_params(SOLVE_NUM_PARAMS, command, "solve X", parameters) == false){
-			clean(command);
-			return 0;
-		}
-
-		handle_solve_command(current_game, parameters[0]);
-
-		print_board((board*)current_game->undo_redo_list->head->data, current_game);
-		clean(command);
-		return 0;
-	}
-
-	/*-------------------------------edit command------------------------------*/
-	else if(strcmp(command_name, "edit") == 0){
-
-		if(check_num_params(EDIT_NUM_PARAMS, command, "edit [X]", parameters) == false){
-			clean(command);
-			return 0;
-		}
-
-		handle_edit_command(current_game, parameters[0]);
-		print_board((board*)current_game->undo_redo_list->head->data, current_game);
-		clean(command);
-		return 0;
-	}
-
-	/*-------------------------------mark errors command------------------------------*/
-	else if(strcmp(command_name, "mark_errors") == 0){
-
-		if(!right_mode(current_game, MARK_ERRORS_MODES, "mark_errors")){
-			clean(command);
-			return 0;
-		}
-
-		if (check_num_params(MARK_ERRORS_NUM_PARAMS, command, "mark_errors X", parameters) == false){
-			clean(command);
-			return 0;
-		}
-
-
-		x = atoi(parameters[0]);
-		if((x == 0 && strcmp(parameters[0], "0") != 0) || (x != 0 && x != 1)){
-			printf("Error: parameter is invalid, should be 0 or 1\n");
-			clean(command);
-			return 0;
-		}
-
-		handle_mark_errors_command(current_game, x);
-		clean(command);
-		return 0;
-	}
-
-	/*-------------------------------print board command------------------------------*/
-	else if(strcmp(command_name, "print_board") == 0){
-
-		if(!right_mode(current_game, PRINT_BOARD_MODES, "print_board")){
-			clean(command);
-			return 0;
-		}
-
-		if(check_num_params(PRINT_BOARD_NUM_PARAMS, command, "print_board", parameters) == false){
-			clean(command);
-			return 0;
-		}
-
-		handle_print_board_command(current_game);
-		clean(command);
-		return 0;
-	}
-
-	/*-------------------------------set command------------------------------*/
-	else if(strcmp(command_name, "set") == 0){
-
-		if(!right_mode(current_game, SET_MODES, "set")){
-			clean(command);
-			return 0;
-		}
-
-		if(check_num_params(SET_NUM_PARAMS, command, "set X Y Z", parameters) == false){
-			clean(command);
-			return 0;
-		}
-
-		x = atoi(parameters[0]);
-		y = atoi(parameters[1]);
-		z = atoi(parameters[2]);
-
-		if(check_atoi_error("X", x, parameters[0]) || check_atoi_error("Y", y, parameters[1])
-				|| check_atoi_error("Z", z, parameters[2])){
-			clean(command);
-			return 0;
-		}
-
-		if(!check_range("X", x, 1, N) || !check_range("Y", y, 1, N) || !check_range("Z", z, 0, N)){
-			clean(command);
-			return 0;
-		}
-
-		/*in solve mode user can't change fixed cells*/
-		if((current_game->mode == solve) && (current_board->board[x - 1][y - 1].is_fixed == true)){
-			printf("Error: this cell is fixed and cannot be changed.\n");
-			clean(command);
-			return 0;
-		}
-
-		handle_set_command(current_game, y - 1, x - 1, z);
-		clean(command);
+	if(find_command_and_params(command, &command_descriptor, argv, &argc) == false){
 		return 0;
 	}
 
 
-	/*-------------------------------edit command------------------------------*/
-	else if(strcmp(command_name, "validate") == 0){
-
-		if(!right_mode(current_game, VALIDATE_MODES, "validate")){
-			clean(command);
-			return 0;
-		}
-
-		if(check_num_params(VALIDATE_NUM_PARAMS, command, "validate", parameters) == false){
-			clean(command);
-			return 0;
-		}
-
-		if(board_is_erroneous(current_board) == true){
-			printf("Error: the board is erroneous\n");
-			clean(command);
-			return 0;
-		}
-
-		handle_validate_command(current_game);
-		clean(command);
+	if((current_game->mode & command_descriptor->modes) == 0){
+		printf("Error: %s command is only available in %s\n", command_descriptor->command_string, mode_for_message[command_descriptor->modes]);
+		clean(argv, argc);
 		return 0;
 	}
 
-	/*-------------------------------guess command------------------------------*/
-	else if(strcmp(command_name, "guess") == 0){
-
-		if(!right_mode(current_game, GUESS_MODES, "guess")){
-			clean(command);
-			return 0;
-		}
-
-		if(check_num_params(GUESS_NUM_PARAMS, command, "guess X", parameters) == false){
-			clean(command);
-			return 0;
-		}
-
-		threshold = atof(parameters[0]);
-		if(threshold == 0.0 && strcmp(parameters[0], "0") != 0){
-			printf("Error: the given threshold is invalid, should be a number.\n");
-			clean(command);
-			return 0;
-		}
-
-		if(threshold > 1.0 || threshold < 0.0){
-			printf("Error: the given threshold is invalid, should be a number between 0 and 1. format: guess X\n");
-			clean(command);
-			return 0;
-		}
-
-		if(board_is_erroneous(current_board)){
-			printf("board is erroneous\n");
-			clean(command);
-			return 0;
-		}
-
-		handle_guess_command(current_game, threshold);
-		clean(command);
+	if(command_descriptor->min_number_of_params > argc){
+		printf("Error: some parameters are missing in %s command, right format: %s.\n", command_descriptor->command_string, command_descriptor->command_format);
+		clean(argv, argc);
+		return 0;
+	}
+	else if(command_descriptor->max_number_of_params < argc){
+		printf("Error: there are too many parameters in %s command, right format: %s.\n", command_descriptor->command_string, command_descriptor->command_format);
+		clean(argv, argc);
 		return 0;
 	}
 
-	/*-------------------------------generate command------------------------------*/
-	else if(strcmp(command_name, "generate") == 0){
-		if(!right_mode(current_game, GENERATE_MODES, "generate")){
-			clean(command);
-			return 0;
-		}
+	command_descriptor->handler(command_descriptor, argv, argc, current_game);
 
-		if(check_num_params(GENERATE_NUM_PARAMS, command, "generate X Y", parameters) == false){
-			clean(command);
-			return 0;
-		}
-
-		x = atoi(parameters[0]);
-		y = atoi(parameters[1]);
-
-		if(check_atoi_error("X", x, parameters[0]) || check_atoi_error("Y", y, parameters[1])){
-			clean(command);
-			return 0;
-		}
-
-		if(!check_range("X", x, 0, N*N) == false || !check_range("Y", y, 0, N*N)){
-			clean(command);
-			return 0;
-		}
-
-		handle_generate_command(current_game, x, y);
-		clean(command);
-		return 0;
-	}
-
-	/*-------------------------------undo command------------------------------*/
-	else if(strcmp(command_name, "undo") == 0){
-		if(!right_mode(current_game, UNDO_MODES, "undo")){
-			clean(command);
-			return 0;
-		}
-
-		if(check_num_params(UNDO_NUM_PARAMS, command, "undo", parameters) == false){
-			clean(command);
-			return 0;
-		}
-
-		handle_undo_redo_command(current_game, 0);
-		clean(command);
-		return 0;
-	}
-
-	/*-------------------------------redo command------------------------------*/
-	else if(strcmp(command_name, "redo") == 0){
-		if(!right_mode(current_game, REDO_MODES, "redo")){
-			clean(command);
-			return 0;
-		}
-
-		if(check_num_params(REDO_NUM_PARAMS, command, "redo", parameters) == false){
-			clean(command);
-			return 0;
-		}
-
-		handle_undo_redo_command(current_game, 1);
-		clean(command);
-		return 0;
-	}
-
-	/*-------------------------------save command------------------------------*/
-	else if(strcmp(command_name, "save") == 0){
-		if(!right_mode(current_game, SAVE_MODES, "save")){
-			clean(command);
-			return 0;
-		}
-
-		if(check_num_params(SAVE_NUM_PARAMS, command, "save X", parameters) == false){
-			clean(command);
-			return 0;
-		}
-
-		if(current_game->mode == edit){
-			if(board_is_erroneous(current_board)){
-				printf("Erroneous boards are not saved in edit mode\n");
-				clean(command);
-				return 0;
-			}
-		}
-
-		handle_save_command(current_game, parameters[0]);
-		clean(command);
-		return 0;
-	}
-
-	/*-------------------------------hint command------------------------------*/
-	else if(strcmp(command_name, "hint") == 0){
-		if(!right_mode(current_game, HINT_MODES, "hint")){
-			clean(command);
-			return 0;
-		}
-
-		if(check_num_params(HINT_NUM_PARAMS, command, "hint X Y", parameters) == false){
-			clean(command);
-			return 0;
-		}
-
-		x = atoi(parameters[0]);
-		y = atoi(parameters[1]);
-
-		if(check_atoi_error("X", x, parameters[0]) || check_atoi_error("Y", y, parameters[1])){
-			clean(command);
-			return 0;
-		}
-
-		if(!check_range("X", x, 1, N) || !check_range("Y", y, 1, N)){
-			clean(command);
-			return 0;
-		}
-
-		if(board_is_erroneous(current_board) == true){
-			printf("Error: board is erroneous\n");
-			clean(command);
-			return 0;
-		}
-
-		if(current_board->board[y - 1][x - 1].is_fixed == 1){
-			printf("Error: the provided cell is fixed\n");
-			clean(command);
-			return 0;
-		}
-
-		if(current_board->board[y - 1][x - 1].value != 0){
-			printf("Error: the provided cell contains a value already\n");
-			clean(command);
-			return 0;
-		}
-
-		handle_hint_and_ghint_command(current_game, y - 1, x - 1, 0);
-		clean(command);
-		return 0;
-	}
-
-	/*-------------------------------guess_hint command------------------------------*/
-	else if(strcmp(command_name, "guess_hint") == 0){
-
-		if(!right_mode(current_game, GUESS_HINT_MODES, "guess_hint")){
-			clean(command);
-			return 0;
-		}
-
-		if(check_num_params(GUESS_HINT_NUM_PARAMS, command, "guess_hint X Y", parameters) == false){
-			clean(command);
-			return 0;
-		}
-
-		x = atoi(parameters[0]);
-		y = atoi(parameters[1]);
-
-		if(check_atoi_error("X", x, parameters[0]) || check_atoi_error("Y", y, parameters[1])){
-			clean(command);
-			return 0;
-		}
-
-		if(!check_range("X", x, 1, N) || !check_range("Y", y, 1, N)){
-			clean(command);
-			return 0;
-		}
-
-		if(board_is_erroneous(current_board) == true){
-			printf("Error: board is erroneous\n");
-			clean(command);
-			return 0;
-		}
-
-		if(current_board->board[y - 1][x - 1].is_fixed == 1){
-			printf("Error: the provided cell is fixed\n");
-			clean(command);
-			return 0;
-		}
-
-		if(current_board->board[y - 1][x - 1].value != 0){
-			printf("Error: the provided cell contains a value already\n");
-			clean(command);
-			return 0;
-		}
-
-		handle_hint_and_ghint_command(current_game, y - 1, x - 1, 0);
-		clean(command);
-		return 0;
-	}
-
-	/*-------------------------------num_solutions command------------------------------*/
-	else if(strcmp(command_name, "num_solutions") == 0){
-		if(!right_mode(current_game, NUM_SOLUTIONS_MODES, "num_solutions")){
-			clean(command);
-			return 0;
-		}
-
-		if(check_num_params(NUM_SOLUTIONS_NUM_PARAMS, command, "num_solutions", parameters) == false){
-			clean(command);
-			return 0;
-		}
-
-		if(board_is_erroneous(current_board) == true){
-			printf("Error: board is erroneous\n");
-			clean(command);
-			return 0;
-		}
-
-		handle_num_solution_command(current_game);
-		clean(command);
-		return 0;
-	}
-
-
-	/*-------------------------------autofill command------------------------------*/
-	else if(strcmp(command_name, "autofill") == 0){
-		if(!right_mode(current_game, AUTOFILL_MODES, "autofill")){
-			clean(command);
-			return 0;
-		}
-
-		if(check_num_params(AUTOFILL_NUM_PARAMS, command, "autofill", parameters) == false){
-			clean(command);
-			return 0;
-		}
-
-		if(board_is_erroneous(current_board) == true){
-			printf("Error: board is erroneous\n");
-			clean(command);
-			return 0;
-		}
-
-		handle_autofill_command(current_game);
-		clean(command);
-		return 0;
-	}
-
-
-	/*-------------------------------reset command------------------------------*/
-	else if(strcmp(command_name, "reset") == 0){
-		if(!right_mode(current_game, RESET_MODES, "reset")){
-			clean(command);
-			return 0;
-		}
-
-		if(check_num_params(RESET_NUM_PARAMS, command, "reset", parameters) == false){
-			clean(command);
-			return 0;
-		}
-
-		handle_reset_command(current_game);
-		clean(command);
-		return 0;
-	}
-
-	/*-------------------------------exit command------------------------------*/
-	else if(strcmp(command_name, "exit") == 0){
-		if(!right_mode(current_game, EXIT_MODES, "exit")){
-			clean(command);
-			return 0;
-		}
-
-		if(check_num_params(EXIT_NUM_PARAMS, command, "exit", parameters) == false){
-			clean(command);
-			return 0;
-		}
-
-		handle_exit_command(current_game);
-		clean(command);
+	if(command_descriptor->command == E_EXIT_CMD){
+		clean(argv, argc);
 		return -1;
 	}
-
-	/*-------------------------------another command------------------------------*/
 	else{
-		printf("This command does not exists\n");
+		clean(argv, argc);
+		return 0;
 	}
-	clean(command);
-	return 0;
 }
+
+
+void parse_solve_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	UNUSED(pcommand_descriptor);
+	UNUSED(argc);
+
+	handle_solve_command(current_game, argv[0]);
+
+	return;
+}
+
+void parse_edit_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	UNUSED(argc);
+	UNUSED(pcommand_descriptor);
+
+	handle_edit_command(current_game, argv[0]);
+	return;
+}
+
+void parse_mark_errors_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	int x;
+	UNUSED(argc);
+	UNUSED(pcommand_descriptor);
+
+	x = atoi(argv[0]);
+	if((x == 0 && strcmp(argv[0], "0") != 0) || (x != 0 && x != 1)){
+		printf("Error: parameter is invalid, should be 0 or 1\n");
+		return;
+	}
+	handle_mark_errors_command(current_game, x);
+	return;
+}
+
+void parse_print_board_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	UNUSED(argc);
+	UNUSED(argv);
+	UNUSED(pcommand_descriptor);
+
+	handle_print_board_command(current_game);
+	return;
+}
+
+void parse_set_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	UNUSED(argc);
+	UNUSED(pcommand_descriptor);
+
+	int x, y, z;
+	board* current_board = current_game->undo_redo_list->head->data;
+	int N = current_board->m * current_board->n;
+	UNUSED(argc);
+	UNUSED(pcommand_descriptor);
+
+	x = atoi(argv[0]);
+	y = atoi(argv[1]);
+	z = atoi(argv[2]);
+
+	if(check_atoi_error("X", x, argv[0]) || check_atoi_error("Y", y, argv[1])
+		|| check_atoi_error("Z", z, argv[2])){
+		return;
+	}
+
+	if(!check_range("X", x, 1, N) || !check_range("Y", y, 1, N) || !check_range("Z", z, 0, N)){
+		return;
+	}
+
+	/*in solve mode user can't change fixed cells*/
+	if((current_game->mode == solve) && (current_board->board[x - 1][y - 1].is_fixed == true)){
+		printf("Error: this cell is fixed and cannot be changed.\n");
+		return;
+	}
+
+	handle_set_command(current_game, y - 1, x - 1, z);
+	return;
+}
+
+void parse_validate_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	UNUSED(argc);
+	UNUSED(pcommand_descriptor);
+
+	board* current_board = current_game->undo_redo_list->head->data;
+
+	if(board_is_erroneous(current_board) == true){
+		printf("Error: the board is erroneous\n");
+		return;
+	}
+	handle_validate_command(current_game);
+	return;
+}
+
+void parse_guess_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	UNUSED(argc);
+	UNUSED(pcommand_descriptor);
+
+	board* current_board = current_game->undo_redo_list->head->data;
+	float threshold;
+
+	threshold = atof(argv[0]);
+	if(threshold == 0.0 && strcmp(argv[0], "0") != 0){
+		printf("Error: the given threshold is invalid, should be a number.\n");
+		return;
+	}
+	if(threshold > 1.0 || threshold < 0.0){
+		printf("Error: the given threshold is invalid, should be a number between 0 and 1. format: guess X\n");
+		return;
+	}
+	if(board_is_erroneous(current_board)){
+		printf("board is erroneous\n");
+		return;
+	}
+	handle_guess_command(current_game, threshold);
+	return;
+}
+
+void parse_generate_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	UNUSED(argc);
+	UNUSED(pcommand_descriptor);
+
+	board* current_board = current_game->undo_redo_list->head->data;
+	int x, y;
+	int N = current_board->m * current_board->n;
+
+
+	x = atoi(argv[0]);
+	y = atoi(argv[1]);
+
+	if(check_atoi_error("X", x, argv[0]) || check_atoi_error("Y", y, argv[1])){
+		return;
+	}
+	if(!check_range("X", x, 0, N*N) == false || !check_range("Y", y, 0, N*N)){
+		return;
+	}
+
+	handle_generate_command(current_game, x, y);
+	return;
+}
+
+void parse_undo_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	UNUSED(argc);
+	UNUSED(argv);
+	UNUSED(pcommand_descriptor);
+
+	handle_undo_redo_command(current_game, E_UNDO_CMD);
+}
+
+void parse_redo_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	UNUSED(argc);
+	UNUSED(argv);
+	UNUSED(pcommand_descriptor);
+
+	handle_undo_redo_command(current_game, E_REDO_CMD);
+}
+
+void parse_save_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	UNUSED(argc);
+	UNUSED(pcommand_descriptor);
+
+	board* current_board = current_game->undo_redo_list->head->data;
+
+	if(current_game->mode == edit){
+		if(board_is_erroneous(current_board)){
+			printf("Erroneous boards are not saved in edit mode\n");
+			return;
+		}
+	}
+	handle_save_command(current_game, argv[0]);
+	return;
+}
+
+void parse_hint_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	UNUSED(argc);
+	UNUSED(pcommand_descriptor);
+
+	board* current_board = current_game->undo_redo_list->head->data;
+	int x,y;
+	int N = current_board->m * current_board->n;
+
+	x = atoi(argv[0]);
+	y = atoi(argv[1]);
+
+	if(check_atoi_error("X", x, argv[0]) || check_atoi_error("Y", y, argv[1])){
+		return;
+	}
+
+	if(!check_range("X", x, 1, N) || !check_range("Y", y, 1, N)){
+		return;
+	}
+
+	if(board_is_erroneous(current_board) == true){
+		printf("Error: board is erroneous\n");
+		return;
+	}
+
+	if(current_board->board[y - 1][x - 1].is_fixed == 1){
+		printf("Error: the provided cell is fixed\n");
+		return;
+	}
+
+	if(current_board->board[y - 1][x - 1].value != 0){
+		printf("Error: the provided cell contains a value already\n");
+		return ;
+	}
+
+	handle_hint_and_ghint_command(current_game, y - 1, x - 1, E_HINT_CMD);
+	return;
+}
+
+void parse_guess_hint_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	UNUSED(argc);
+	UNUSED(pcommand_descriptor);
+
+	board* current_board = current_game->undo_redo_list->head->data;
+	int x,y;
+	int N = current_board->m * current_board->n;
+
+	x = atoi(argv[0]);
+	y = atoi(argv[1]);
+
+	if(check_atoi_error("X", x, argv[0]) || check_atoi_error("Y", y, argv[1])){
+		return;
+	}
+
+	if(!check_range("X", x, 1, N) || !check_range("Y", y, 1, N)){
+		return;
+	}
+
+	if(board_is_erroneous(current_board) == true){
+		printf("Error: board is erroneous\n");
+		return;
+	}
+
+	if(current_board->board[y - 1][x - 1].is_fixed == 1){
+		printf("Error: the provided cell is fixed\n");
+		return;
+	}
+
+	if(current_board->board[y - 1][x - 1].value != 0){
+		printf("Error: the provided cell contains a value already\n");
+		return ;
+	}
+
+	handle_hint_and_ghint_command(current_game, y - 1, x - 1, E_GUESS_HINT_CMD);
+	return;
+}
+
+void parse_num_solutions_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	UNUSED(argc);
+	UNUSED(argv);
+	UNUSED(pcommand_descriptor);
+
+	board* current_board = current_game->undo_redo_list->head->data;
+
+	if(board_is_erroneous(current_board) == true){
+		printf("Error: board is erroneous\n");
+		return;
+	}
+
+	handle_num_solutions_command(current_game);
+	return;
+}
+
+
+void parse_autofill_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	UNUSED(argc);
+	UNUSED(argv);
+	UNUSED(pcommand_descriptor);
+
+	board* current_board = current_game->undo_redo_list->head->data;
+
+	if(board_is_erroneous(current_board) == true){
+		printf("Error: board is erroneous\n");
+		return;
+	}
+
+	handle_autofill_command(current_game);
+	return;
+}
+
+void parse_reset_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	UNUSED(argc);
+	UNUSED(argv);
+	UNUSED(pcommand_descriptor);
+
+	handle_reset_command(current_game);
+}
+
+void parse_exit_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	UNUSED(argc);
+	UNUSED(argv);
+	UNUSED(pcommand_descriptor);
+
+	handle_exit_command(current_game);
+}
+
 

@@ -32,7 +32,7 @@ int main() {
 			return EXIT_FAILURE;
 		}
 
-		if(command_parser(command, current_game) == -1){
+		if(parse_command(command, current_game) == -1){
 			need_to_exit = true;
 			break;
 		}

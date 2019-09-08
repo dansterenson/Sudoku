@@ -18,6 +18,7 @@ void handle_solve_command(game* current_game, char* path){
 
 	if(load_game_from_file(current_game, path) == true){
 		current_game->mode = solve;
+		print_board((board*)current_game->undo_redo_list->head->data, current_game);
 	}
 }
 
@@ -27,6 +28,7 @@ void handle_edit_command(game* current_game, char* path){
 	if(path != NULL){ /*there is a path (optional parameter)*/
 		if(load_game_from_file(current_game, path) == false){
 			current_game->mode = edit;
+			print_board((board*)current_game->undo_redo_list->head->data, current_game);
 		}
 	}
 	else{
@@ -191,7 +193,7 @@ void handle_undo_redo_command(game* current_game, int command){
 	board* board_before_command = (board*)current_board_list->head->data;
 	board* board_after_command;
 
-	if(command == 0){ /*undo command*/
+	if(command == E_UNDO_CMD){ /*undo command*/
 		if(current_board_list->head->prev == NULL){ /*check if there is a undo move*/
 			printf("Error, there are no moves to undo\n");
 			return;
@@ -199,7 +201,7 @@ void handle_undo_redo_command(game* current_game, int command){
 		board_after_command = (board*)current_board_list->head->prev->data;
 		current_board_list->head = current_board_list->head->prev;
 	}
-	else if(command == 1){ /*redo command*/
+	else if(command == E_REDO_CMD){ /*redo command*/
 		if(current_board_list->head->next == NULL){ /*check if there is a redo move*/
 			printf("Error, there are no moves to redo\n");
 			return;
@@ -230,10 +232,10 @@ void handle_hint_and_ghint_command(game* current_game, int row, int col,int comm
 	board* copy_of_board;
 
 	copy_of_board = copy_board(current_board);
-	if(command == 0){ /*hint command*/
+	if(command == E_HINT_CMD){ /*hint command*/
 		return_val = gurobi_main_ILP(copy_of_board, 1);
 	}
-	else if(command == 1){/*guess_hint_commant*/
+	else if(command == E_GUESS_HINT_CMD){/*guess_hint_commant*/
 		return_val = gurobi_main_LP(copy_of_board, 0.0);
 	}
 
@@ -248,7 +250,7 @@ void handle_hint_and_ghint_command(game* current_game, int row, int col,int comm
 	}
 }
 
-void handle_num_solution_command(game* current_game){
+void handle_num_solutions_command(game* current_game){
 	board* current_board = current_game->undo_redo_list->head->data;
 	board* copy_of_board;
 	int num_sol = 0;
