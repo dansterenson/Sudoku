@@ -9,22 +9,20 @@
 #include "main_aux.h"
 #include <stdlib.h>
 #include <string.h>
+#include "game_utils.h"
 #include "gurobi_solver_ILP.h"
 #include "gurobi_solver_LP.h"
-#include "game_utils.h"
-
 
 
 void handle_solve_command(game* current_game, char* path){
 
-	if(load_game_from_file(current_game, path) == false){
+	if(load_game_from_file(current_game, path) == true){
 		current_game->mode = solve;
 	}
 }
 
 void handle_edit_command(game* current_game, char* path){
 	board* new_board;
-	Node* new_node;
 
 	if(path != NULL){ /*there is a path (optional parameter)*/
 		if(load_game_from_file(current_game, path) == false){
@@ -55,7 +53,6 @@ void handle_print_board_command(game* current_game){
 void handle_set_command(game* current_game,int row, int col, int new_value){
 	board* current_board = current_game->undo_redo_list->head->data;
 	board* copy_of_board;
-	int N = current_board->m*current_board->n;
 
 	copy_of_board = copy_board(current_board);
 

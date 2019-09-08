@@ -44,8 +44,8 @@ void list_push(list* list, void* data){
     Node* new_node = create_node(data);
 
     if (!list_is_empty(list)) {
-        list->head->prev = new_node;
-        new_node->next = list->head;
+        list->head->next = new_node;
+        new_node->prev = list->head;
         list->head = new_node;
     }
     else {
@@ -72,9 +72,9 @@ void* list_pop(list* list){
     }
 
     else {
-        list->head = popped->next;
-        list->head->prev = NULL;
-        popped->next = NULL;
+        list->head = popped->prev;
+        list->head->next = NULL;
+        popped->prev = NULL;
     }
 
     free(popped);
@@ -97,7 +97,7 @@ void free_list_mem(list* list_to_free, void (*func_to_free_data)(void*)){
 	Node* temp;
 	while(list_to_free->head != NULL){
 		temp = list_to_free->head;
-		list_to_free->head = list_to_free->head->next;
+		list_to_free->head = list_to_free->head->prev;
 		func_to_free_data(temp->data);
 		free(temp);
 	}
