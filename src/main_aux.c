@@ -70,6 +70,16 @@ board* create_board(int n, int m){
 	return new_board;
 }
 
+list* create_empty_list(){
+	list* new_list;
+	new_list = (list*) calloc(1, sizeof(list));
+	if(new_list == NULL){
+		memory_alloc_problem();
+	}
+	init_list(new_list);
+	return new_list;
+}
+
 game* create_game(int n, int m, game_modes mode, bool is_mark_errors){
 	board* new_board;
 	list* undo_redo_list;
@@ -80,12 +90,8 @@ game* create_game(int n, int m, game_modes mode, bool is_mark_errors){
 		memory_alloc_problem();
 	}
 
-	undo_redo_list = (list*) calloc(1, sizeof(list));
-	if(undo_redo_list == NULL){
-		memory_alloc_problem();
-	}
 
-	init_list(undo_redo_list);
+	undo_redo_list = create_empty_list();
 	new_board = create_board(n, m);
 	list_push(undo_redo_list, new_board);
 
@@ -112,7 +118,7 @@ void file_not_right_format(FILE *fp){
 	}
 }
 
-int load_game_from_file(game* current_game, char* path){
+int load_game_from_file(game* current_game, char* path, board** loaded_board){
 	FILE *fp;
 	char c;
 	int cell_value;
@@ -167,7 +173,7 @@ int load_game_from_file(game* current_game, char* path){
 		}
 	}
 
-	list_push(current_game->undo_redo_list, new_board);
+	*loaded_board = new_board;
 
 	return true;
 }

@@ -15,6 +15,21 @@
 
 #define UNUSED(x) (void)(x);
 
+struct command_desc;
+
+typedef void (* handler_t)(struct command_desc* pcommand_descriptor, char** argv, int argc, game* current_game);
+
+typedef struct command_desc{
+	char *command_string;
+	char *command_format;
+	command_e command;
+	int min_number_of_params;
+	int max_number_of_params;
+	int modes;
+	handler_t handler;
+}command_descriptor_t;
+
+
 void parse_solve_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game);
 
 void parse_edit_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game);
@@ -52,7 +67,7 @@ void parse_exit_command(struct command_desc* pcommand_descriptor, char** argv, i
 
 static command_descriptor_t commands[] = {
 		{"solve","solve X", E_SOLVE_CMD, 1, 1, (init | edit | solve), parse_solve_command},
-		{"edit","edit X", E_SOLVE_CMD, 0, 1, (init | edit | solve), parse_edit_command},
+		{"edit","edit X", E_EDIT_CMD, 0, 1, (init | edit | solve), parse_edit_command},
 		{"mark_errors","mark_errors X", E_MARK_ERRORS_CMD, 1, 1, (solve), parse_mark_errors_command},
 		{"print_board", "print_board", E_PRINT_BOARD_CMD, 0, 0, (edit | solve), parse_print_board_command},
 		{"set", "set X Y Z", E_SET_CMD, 3, 3, (edit | solve), parse_set_command},
@@ -100,7 +115,7 @@ int find_command_and_params(char* command, command_descriptor_t** command_descri
 		}
 	}
 
-	if(command_descriptor == NULL){
+	if(*command_descriptor == NULL){
 		printf("This command does not exists\n");
 		return false;
 	}
@@ -172,7 +187,12 @@ void parse_edit_command(command_descriptor_t* pcommand_descriptor, char** argv, 
 	UNUSED(argc);
 	UNUSED(pcommand_descriptor);
 
-	handle_edit_command(current_game, argv[0]);
+	if(argc == 1){
+		handle_edit_command(current_game, argv[0]);
+	}
+	else{
+		handle_edit_command(current_game, NULL);
+	}
 	return;
 }
 
@@ -206,8 +226,6 @@ void parse_set_command(command_descriptor_t* pcommand_descriptor, char** argv, i
 	int x, y, z;
 	board* current_board = current_game->undo_redo_list->head->data;
 	int N = current_board->m * current_board->n;
-	UNUSED(argc);
-	UNUSED(pcommand_descriptor);
 
 	x = atoi(argv[0]);
 	y = atoi(argv[1]);

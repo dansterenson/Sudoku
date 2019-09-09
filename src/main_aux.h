@@ -37,6 +37,11 @@ int get_command_from_user(char command[COMMAND_SIZE + 1]);
 board* create_board(int n, int m);
 
 /*
+ * creates empty list
+ */
+list* create_empty_list();
+
+/*
  * creates a new game with the given mode
  * create a board and inserts it to the head of the list.
  * returns a pointer to the game that was created.
@@ -60,7 +65,7 @@ void file_not_right_format(FILE *fp);
  * returns false in error
  * otherwise returns true.
  */
-int load_game_from_file(game* current_game, char* path);
+int load_game_from_file(game* current_game, char* path, board** loaded_board);
 
 /*
  * saves a game from a file.

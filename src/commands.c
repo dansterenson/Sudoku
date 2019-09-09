@@ -15,27 +15,44 @@
 
 
 void handle_solve_command(game* current_game, char* path){
+	board* loaded_board;
+	list* new_list;
 
-	if(load_game_from_file(current_game, path) == true){
+	if(load_game_from_file(current_game, path, &loaded_board) == true){
+		free_list_mem(current_game->undo_redo_list, free_board_mem);
+		new_list = create_empty_list();
+		list_push(new_list, loaded_board);
+		current_game->undo_redo_list = new_list;
 		current_game->mode = solve;
 		print_board((board*)current_game->undo_redo_list->head->data, current_game);
 	}
+	return;
 }
 
 void handle_edit_command(game* current_game, char* path){
-	board* new_board;
+	board* loaded_board;
+	list* new_list;
 
 	if(path != NULL){ /*there is a path (optional parameter)*/
-		if(load_game_from_file(current_game, path) == false){
-			current_game->mode = edit;
+		if(load_game_from_file(current_game, path, &loaded_board) == true){
+			free_list_mem(current_game->undo_redo_list, free_board_mem);
+			new_list = create_empty_list();
+			list_push(new_list, loaded_board);
+			current_game->undo_redo_list = new_list;
+
 			print_board((board*)current_game->undo_redo_list->head->data, current_game);
+		}
+		else{
+			return;
 		}
 	}
 	else{
-		new_board = create_board(3, 3);
-		current_game->mode = edit;
-		list_push(current_game->undo_redo_list, new_board);
+		free_list_mem(current_game->undo_redo_list, free_board_mem);
+		new_list = create_empty_list();
+		current_game->undo_redo_list = new_list;
+		print_board((board*)current_game->undo_redo_list->head->data, current_game);
 	}
+	current_game->mode = edit;
 }
 
 void handle_mark_errors_command(game* current_game, int setting){
@@ -59,13 +76,21 @@ void handle_set_command(game* current_game,int row, int col, int new_value){
 	copy_of_board = copy_board(current_board);
 
 	copy_of_board->board[row][col].value = new_value;
+	if(!is_legal_cell(copy_of_board, row, col, new_value)){
+		copy_of_board->board[row][col].is_error = true;
+	}
+	else{
+		copy_of_board->board[row][col].is_error = false;
+	}
 	list_push(current_game->undo_redo_list, copy_of_board);
 	current_board = (board*)current_game->undo_redo_list->head->data;
 	print_board(current_board, current_game);
 
 	if(current_game->mode == solve){
-		if(board_is_completed(current_board) == true){
-			current_game->mode = init;
+		if(board_is_full(current_board)){
+			if(board_is_completed(current_board) == true){
+				current_game->mode = init;
+			}
 		}
 	}
 	return;
@@ -275,7 +300,7 @@ void handle_autofill_command(game* current_game){
 	int N = current_board->m*current_board->n;
 	int i,j,k;
 	int* legal_values;
-	int num_legal_val = 0;
+	int num_legal_val;
 	board* copy_of_board;
 	int val_to_fill;
 
@@ -288,7 +313,7 @@ void handle_autofill_command(game* current_game){
 
 	for(i = 0; i < N; i++){
 		for(j = 0; j < N; j++){
-
+			num_legal_val = 0;
 			set_array_zero(legal_values, N);/*all cells are not allowed at first*/
 
 			if(current_board->board[i][j].value == 0){ /*if cell is empty*/
@@ -309,9 +334,12 @@ void handle_autofill_command(game* current_game){
 
 	print_changes_boards(current_board, copy_of_board);
 	list_push(current_game->undo_redo_list, copy_of_board);
+	print_board(current_game->undo_redo_list->head->data, current_game);
 
-	if(board_is_completed((board*)current_game->undo_redo_list->head->data) == true){
-		current_game->mode = init;
+	if(board_is_full(current_game->undo_redo_list->head->data)){
+		if(board_is_completed((board*)current_game->undo_redo_list->head->data) == true){
+			current_game->mode = init;
+		}
 	}
 	free(legal_values);
 	return;
@@ -323,6 +351,7 @@ void handle_reset_command(game* current_game){
 	while(undo_redo_list->head->prev != NULL){
 		undo_redo_list->head = undo_redo_list->head->prev;
 	}
+	print_board(current_game->undo_redo_list->head->data, current_game);
 	return;
 }
 
