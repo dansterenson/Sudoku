@@ -28,7 +28,7 @@ typedef enum {
 	E_NUM_SOLUTIONS_CMD,
 	E_AUTOFILL_CMD,
 	E_RESET_CMD,
-	E_EXIT_CMD,
+	E_EXIT_CMD
 }command_e;
 
 #define GENERATE_MAX_ITERATIONS 1000

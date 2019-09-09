@@ -18,7 +18,7 @@ void handle_solve_command(game* current_game, char* path){
 	board* loaded_board;
 	list* new_list;
 
-	if(load_game_from_file(current_game, path, &loaded_board) == true){
+	if(load_game_from_file(path, &loaded_board) == true){
 		free_list_mem(current_game->undo_redo_list, free_board_mem);
 		new_list = create_empty_list();
 		list_push(new_list, loaded_board);
@@ -34,7 +34,7 @@ void handle_edit_command(game* current_game, char* path){
 	list* new_list;
 
 	if(path != NULL){ /*there is a path (optional parameter)*/
-		if(load_game_from_file(current_game, path, &loaded_board) == true){
+		if(load_game_from_file(path, &loaded_board) == true){
 			free_list_mem(current_game->undo_redo_list, free_board_mem);
 			new_list = create_empty_list();
 			list_push(new_list, loaded_board);
@@ -128,6 +128,7 @@ void handle_generate_command(game* current_game, int x, int y){
 	int n = current_board->n;
 	int m = current_board->m;
 	int N = n*m;
+	int i,k;
 	int num_of_iteration = 0;
 	int need_new_iteration = 0;
 	int cnt = 0, cnt2;
@@ -164,7 +165,7 @@ void handle_generate_command(game* current_game, int x, int y){
 			find_empty_cell(copy_of_board, &empty_cell_row, &empty_cell_col, r, N);/*find this cell*/
 			cell_legal_values(copy_of_board, legal_values, N, empty_cell_row, empty_cell_col);
 
-			for(int i = 0; i < N; i++){ /*count legal values in cell*/
+			for(i = 0; i < N; i++){ /*count legal values in cell*/
 				if(legal_values[i] != 0){
 					num_of_legal_val++;
 				}
@@ -176,7 +177,7 @@ void handle_generate_command(game* current_game, int x, int y){
 			}
 			else{
 				random_legal = rand() % num_of_legal_val; /*choose random legal value*/
-				for (int k = 0; k < N; k++){ /*find him*/
+				for (k = 0; k < N; k++){ /*find him*/
 					if(legal_values[k] != 0){
 						cnt2++;
 					}
@@ -226,7 +227,7 @@ void handle_undo_redo_command(game* current_game, int command){
 		board_after_command = (board*)current_board_list->head->prev->data;
 		current_board_list->head = current_board_list->head->prev;
 	}
-	else if(command == E_REDO_CMD){ /*redo command*/
+	else { /*redo command*/
 		if(current_board_list->head->next == NULL){ /*check if there is a redo move*/
 			printf("Error, there are no moves to redo\n");
 			return;
@@ -260,7 +261,7 @@ void handle_hint_and_ghint_command(game* current_game, int row, int col,int comm
 	if(command == E_HINT_CMD){ /*hint command*/
 		return_val = gurobi_main_ILP(copy_of_board, 1);
 	}
-	else if(command == E_GUESS_HINT_CMD){/*guess_hint_commant*/
+	else {/*guess_hint_commant*/
 		return_val = gurobi_main_LP(copy_of_board, 0.0);
 	}
 
@@ -302,7 +303,7 @@ void handle_autofill_command(game* current_game){
 	int* legal_values;
 	int num_legal_val;
 	board* copy_of_board;
-	int val_to_fill;
+	int val_to_fill = 0;
 
 	legal_values = (int*)calloc(N, sizeof(int));
 	if(legal_values == NULL){

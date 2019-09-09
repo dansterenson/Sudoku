@@ -98,7 +98,8 @@ const char * mode_for_message[] = {
 const char delimitor[8] = " \t\r\n";
 
 void clean(char** argv,int argc){
-	for(int i = 0; i < argc; i++){
+	int i;
+	for(i = 0; i < argc; i++){
 		free(argv[i]);
 	}
 }
@@ -107,9 +108,10 @@ int find_command_and_params(char* command, command_descriptor_t** command_descri
 	char* command_name;
 	char* param;
 	int j = 0;
+	int unsigned i;
 	command_name = strtok(command, delimitor);
 
-	for (int i = 0; i < sizeof(commands) / sizeof(command_descriptor_t); i++){
+	for (i = 0; i < sizeof(commands) / sizeof(command_descriptor_t); i++){
 		if(strcmp(command_name, commands[i].command_string) == 0){
 			*command_descriptor = &commands[i];
 		}
@@ -220,12 +222,12 @@ void parse_print_board_command(command_descriptor_t* pcommand_descriptor, char**
 }
 
 void parse_set_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
-	UNUSED(argc);
-	UNUSED(pcommand_descriptor);
-
 	int x, y, z;
 	board* current_board = current_game->undo_redo_list->head->data;
 	int N = current_board->m * current_board->n;
+
+	UNUSED(argc);
+	UNUSED(pcommand_descriptor);
 
 	x = atoi(argv[0]);
 	y = atoi(argv[1]);
@@ -251,10 +253,11 @@ void parse_set_command(command_descriptor_t* pcommand_descriptor, char** argv, i
 }
 
 void parse_validate_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
-	UNUSED(argc);
-	UNUSED(pcommand_descriptor);
-
 	board* current_board = current_game->undo_redo_list->head->data;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	UNUSED(pcommand_descriptor);
 
 	if(board_is_erroneous(current_board) == true){
 		printf("Error: the board is erroneous\n");
@@ -265,11 +268,11 @@ void parse_validate_command(command_descriptor_t* pcommand_descriptor, char** ar
 }
 
 void parse_guess_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
-	UNUSED(argc);
-	UNUSED(pcommand_descriptor);
-
 	board* current_board = current_game->undo_redo_list->head->data;
 	float threshold;
+
+	UNUSED(argc);
+	UNUSED(pcommand_descriptor);
 
 	threshold = atof(argv[0]);
 	if(threshold == 0.0 && strcmp(argv[0], "0") != 0){
@@ -289,13 +292,13 @@ void parse_guess_command(command_descriptor_t* pcommand_descriptor, char** argv,
 }
 
 void parse_generate_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
-	UNUSED(argc);
-	UNUSED(pcommand_descriptor);
 
 	board* current_board = current_game->undo_redo_list->head->data;
 	int x, y;
 	int N = current_board->m * current_board->n;
 
+	UNUSED(argc);
+	UNUSED(pcommand_descriptor);
 
 	x = atoi(argv[0]);
 	y = atoi(argv[1]);
@@ -328,10 +331,10 @@ void parse_redo_command(command_descriptor_t* pcommand_descriptor, char** argv, 
 }
 
 void parse_save_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	board* current_board = current_game->undo_redo_list->head->data;
+
 	UNUSED(argc);
 	UNUSED(pcommand_descriptor);
-
-	board* current_board = current_game->undo_redo_list->head->data;
 
 	if(current_game->mode == edit){
 		if(board_is_erroneous(current_board)){
@@ -344,12 +347,12 @@ void parse_save_command(command_descriptor_t* pcommand_descriptor, char** argv, 
 }
 
 void parse_hint_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
-	UNUSED(argc);
-	UNUSED(pcommand_descriptor);
-
 	board* current_board = current_game->undo_redo_list->head->data;
 	int x,y;
 	int N = current_board->m * current_board->n;
+
+	UNUSED(argc);
+	UNUSED(pcommand_descriptor);
 
 	x = atoi(argv[0]);
 	y = atoi(argv[1]);
@@ -382,12 +385,12 @@ void parse_hint_command(command_descriptor_t* pcommand_descriptor, char** argv, 
 }
 
 void parse_guess_hint_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
-	UNUSED(argc);
-	UNUSED(pcommand_descriptor);
-
 	board* current_board = current_game->undo_redo_list->head->data;
 	int x,y;
 	int N = current_board->m * current_board->n;
+
+	UNUSED(argc);
+	UNUSED(pcommand_descriptor);
 
 	x = atoi(argv[0]);
 	y = atoi(argv[1]);
@@ -420,11 +423,11 @@ void parse_guess_hint_command(command_descriptor_t* pcommand_descriptor, char** 
 }
 
 void parse_num_solutions_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	board* current_board = current_game->undo_redo_list->head->data;
+
 	UNUSED(argc);
 	UNUSED(argv);
 	UNUSED(pcommand_descriptor);
-
-	board* current_board = current_game->undo_redo_list->head->data;
 
 	if(board_is_erroneous(current_board) == true){
 		printf("Error: board is erroneous\n");
@@ -437,11 +440,11 @@ void parse_num_solutions_command(command_descriptor_t* pcommand_descriptor, char
 
 
 void parse_autofill_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game){
+	board* current_board = current_game->undo_redo_list->head->data;
+
 	UNUSED(argc);
 	UNUSED(argv);
 	UNUSED(pcommand_descriptor);
-
-	board* current_board = current_game->undo_redo_list->head->data;
 
 	if(board_is_erroneous(current_board) == true){
 		printf("Error: board is erroneous\n");

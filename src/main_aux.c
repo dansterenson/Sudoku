@@ -118,7 +118,7 @@ void file_not_right_format(FILE *fp){
 	}
 }
 
-int load_game_from_file(game* current_game, char* path, board** loaded_board){
+int load_game_from_file(char* path, board** loaded_board){
 	FILE *fp;
 	char c;
 	int cell_value;
@@ -138,6 +138,7 @@ int load_game_from_file(game* current_game, char* path, board** loaded_board){
 
 	if(num_read != 1 || new_m == 0){
 		file_not_right_format(fp);
+		fclose(fp);
 		return false;
 	}
 
@@ -145,6 +146,7 @@ int load_game_from_file(game* current_game, char* path, board** loaded_board){
 
 	if(num_read != 1 || new_n == 0){
 		file_not_right_format(fp);
+		fclose(fp);
 		return false;
 	}
 
@@ -155,6 +157,7 @@ int load_game_from_file(game* current_game, char* path, board** loaded_board){
 			num_read = fscanf(fp, "%d", &cell_value);
 			if(!cell_in_right_format(new_n, new_m, cell_value)){
 				file_not_right_format(fp);
+				fclose(fp);
 				return false;
 			}
 			new_board->board[i][j].value = cell_value;
@@ -168,6 +171,7 @@ int load_game_from_file(game* current_game, char* path, board** loaded_board){
 			}
 			else{
 				file_not_right_format(fp);
+				fclose(fp);
 				return false;
 			}
 		}
@@ -175,6 +179,7 @@ int load_game_from_file(game* current_game, char* path, board** loaded_board){
 
 	*loaded_board = new_board;
 
+	fclose(fp);
 	return true;
 }
 
@@ -417,9 +422,10 @@ void print_changes_boards(board* first_board, board* second_board){
 	int n = first_board->n;
 	int m = first_board->m;
 	int N = n*m;
+	int i,j;
 
-	for (int i = 0; i < N; i++){
-		for (int j = 0; j < N; j++){
+	for (i = 0; i < N; i++){
+		for (j = 0; j < N; j++){
 			if (first_board->board[i][j].value != second_board->board[i][j].value){
 				printf("Cell (%d, %d) was changed from value %d to value %d.\n", i + 1, j + 1, first_board->board[i][j].value , second_board->board[i][j].value);
 			}
@@ -447,7 +453,8 @@ int board_is_completed(board* current_board){
 }
 
 void cell_legal_values(board* current_board, int* legal_values, int N, int row, int col){
-	for(int i = 0; i < N; i++){
+	int i;
+	for(i = 0; i < N; i++){
 		if (is_legal_cell(current_board, row, col, i + 1)){
 			legal_values[i] = 1;
 		}
@@ -456,13 +463,15 @@ void cell_legal_values(board* current_board, int* legal_values, int N, int row, 
 
 void find_empty_cell(board* current_board, int* empty_cell_row, int* empty_cell_col, int r, int N){
 	int cnt = 0;
-	for(int i = 0; i < N; i++){
-		for(int j = 0; j < N; j++){
+	int i,j;
+
+	for(i = 0; i < N; i++){
+		for(j = 0; j < N; j++){
 			if(current_board->board[i][j].value == 0){
 				cnt++;
 				if(cnt == r){
-					empty_cell_row = &i;
-					empty_cell_col = &j;
+					*empty_cell_row = i;
+					*empty_cell_col = j;
 					return;
 				}
 			}

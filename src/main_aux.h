@@ -65,7 +65,7 @@ void file_not_right_format(FILE *fp);
  * returns false in error
  * otherwise returns true.
  */
-int load_game_from_file(game* current_game, char* path, board** loaded_board);
+int load_game_from_file(char* path, board** loaded_board);
 
 /*
  * saves a game from a file.
