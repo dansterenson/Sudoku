@@ -31,6 +31,7 @@ void handle_solve_command(game* current_game, char* path){
 
 void handle_edit_command(game* current_game, char* path){
 	board* loaded_board;
+	board* new_board;
 	list* new_list;
 
 	if(path != NULL){ /*there is a path (optional parameter)*/
@@ -47,8 +48,10 @@ void handle_edit_command(game* current_game, char* path){
 		}
 	}
 	else{
+		new_board = create_board(3, 3);
 		free_list_mem(current_game->undo_redo_list, free_board_mem);
 		new_list = create_empty_list();
+		list_push(new_list, new_board);
 		current_game->undo_redo_list = new_list;
 		print_board((board*)current_game->undo_redo_list->head->data, current_game);
 	}
