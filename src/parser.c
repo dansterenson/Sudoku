@@ -306,7 +306,7 @@ void parse_generate_command(command_descriptor_t* pcommand_descriptor, char** ar
 	if(check_atoi_error("X", x, argv[0]) || check_atoi_error("Y", y, argv[1])){
 		return;
 	}
-	if(!check_range("X", x, 0, N*N) == false || !check_range("Y", y, 0, N*N)){
+	if(check_range("X", x, 0, N*N) == false || check_range("Y", y, 0, N*N) == false){
 		return;
 	}
 
