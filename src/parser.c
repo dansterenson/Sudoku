@@ -82,7 +82,7 @@ static command_descriptor_t commands[] = {
 		{"num_solutions", "num_solutions", E_NUM_SOLUTIONS_CMD, 0, 0, (edit | solve), parse_num_solutions_command},
 		{"autofill", "autofill", E_AUTOFILL_CMD, 0, 0, (solve), parse_autofill_command},
 		{"reset", "reset", E_RESET_CMD, 0, 0, (edit | solve), parse_reset_command},
-		{"exit","exit", E_EXIT_CMD, 0, 0, (edit | solve), parse_exit_command},
+		{"exit","exit", E_EXIT_CMD, 0, 0, (init | edit | solve), parse_exit_command},
 };
 
 const char * mode_for_message[] = {

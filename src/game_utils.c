@@ -8,6 +8,7 @@
 #include "game_utils.h"
 #include "stack.h"
 #include <stdlib.h>
+#include "main_aux.h"
 #include <stdio.h>
 
 /*
@@ -28,17 +29,21 @@ int is_col_legal(board_cell** game_board, int row, int col, int num, int N);
  */
 int is_block_legal(board_cell** game_board, int row, int col, int num, int rows_of_blocks, int cols_of_blocks);
 
-/* Create a new stack node with relevant details about the cell it simulates */
-cell_node* create_stack_node(int row, int col, int value);
+/*
+ * creates an array of size number_of_empty_cells of empty cells.
+ */
+cell_node* empty_cells_indexes(board* game_board, int number_of_empty_cells);
 
-/* Get the top stack node, and increment it's value (using cell_node* implementation for stack node) */
-void increment_top_node_value(Stack* stack);
 
 int is_legal_cell(board* current_board, int row, int col, int num) {
 	int rows_of_blocks = current_board->n;
 	int cols_of_blocks = current_board->m;
 	int N = rows_of_blocks * cols_of_blocks;
 	board_cell** game_board = current_board->board;
+
+	if(num == 0){
+		return 1;
+	}
 
 	return is_row_legal(game_board, row, col, num, N)
 			&& is_col_legal(game_board, row, col, num, N)
@@ -49,7 +54,7 @@ int is_row_legal(board_cell** game_board, int row, int col, int num, int N) {
 	int i;
 
 	for (i = 0; i < N; i++) {
-		if (game_board[i][row].value == num && i != col) {
+		if (game_board[row][i].value == num && i != col) {
 			return 0;
 		}
 	}
@@ -60,7 +65,7 @@ int is_col_legal(board_cell** game_board, int row, int col, int num, int N) {
 	int i;
 
 	for (i = 0; i < N; i++) {
-		if (game_board[col][i].value == num && i != row) {
+		if (game_board[i][col].value == num && i != row) {
 			return 0;
 		}
 	}
@@ -78,7 +83,7 @@ int is_block_legal(board_cell** game_board, int row, int col, int num, int rows_
 			if (i == row && j == col) {
 				continue;
 			}
-			else if (game_board[j][i].value == num) {
+			else if (game_board[i][j].value == num) {
 				return 0;
 			}
 		}
@@ -86,141 +91,86 @@ int is_block_legal(board_cell** game_board, int row, int col, int num, int rows_
 	return 1;
 }
 
-int exhaustive_backtracking_solution_count(board* game_board) {
-	Stack* helper_stack;
-	cell_node* tmp_stack_node;
-	int solution_count = 0;
-	int N = game_board->n * game_board->m;
+cell_node* empty_cells_indexes(board* game_board, int number_of_empty_cells){
+	int N = game_board->m * game_board->n;
+	int i;
+	int j;
+	int k = 0;
+	cell_node* ret = (cell_node*)calloc(number_of_empty_cells, sizeof(cell_node));
 
-	/* Init stack and push first stack node with the first possible value: 1. */
-	helper_stack = stack_init();
-	tmp_stack_node = create_stack_node(0,0,1);
-	stack_push(helper_stack, tmp_stack_node);
-
-	while(get_stack_size(helper_stack) > 0) {
-		tmp_stack_node = (cell_node*)get_stack_top_element(helper_stack);
-
-		/* there are still legal values for this cell */
-		if (tmp_stack_node->value <= N) {
-			/* In case cell is fixed */
-			if (game_board->board[tmp_stack_node->row_index][tmp_stack_node->col_index].is_fixed == 1) {
-				/* Check if the fixed cell has the stack's top element's value */
-				if (game_board->board[tmp_stack_node->row_index][tmp_stack_node->col_index].value == tmp_stack_node->value){
-					/* the cell's placement is legal for this board */
-					if(is_legal_cell(game_board,tmp_stack_node->row_index, tmp_stack_node->col_index, tmp_stack_node->value)){
-						/* If it's a legal placement and we've reached the last cell - we have a solution! */
-						if (tmp_stack_node->row_index == N-1 && tmp_stack_node->col_index == N-1){
-							solution_count++;
-
-							/* Use stack to simulate recursive backtracking */
-							stack_pop(helper_stack);
-							increment_top_node_value(helper_stack);
-						}
-						/* Cell is legal, but we haven't reached the board's last cell */
-						else {
-							/* Check if we're at the last column */
-							if (tmp_stack_node->col_index == N-1){
-								tmp_stack_node->row_index +=1;
-								tmp_stack_node->col_index = 0;
-								tmp_stack_node->value = 1;
-								stack_push(helper_stack, tmp_stack_node);
-
-							} else {
-								tmp_stack_node->col_index += 1;
-								tmp_stack_node->value = 1;
-								stack_push(helper_stack, tmp_stack_node);
-							 }
-						 }
-					 }
-					/* Cell placement isn't legal */
-					else{
-						increment_top_node_value(helper_stack);
-					 }
-				}
-				else {
-					increment_top_node_value(helper_stack);
-				}
-
-			}
-			/* Cell isn't fixed */
-			else {
-				if(is_legal_cell(game_board,tmp_stack_node->row_index, tmp_stack_node->col_index, tmp_stack_node->value)){
-					/* If it's a legal placement and we've reached the last cell - we have a solution! */
-					if (tmp_stack_node->row_index == N-1 && tmp_stack_node->col_index == N-1){
-						solution_count++;
-
-						/*backtrack*/
-						game_board->board[tmp_stack_node->row_index][tmp_stack_node->col_index].value = 0;
-						stack_pop(helper_stack);
-						increment_top_node_value(helper_stack);
-					}
-					/* Cell is legal, but we haven't reached the board's last cell */
-					else {
-						game_board->board[tmp_stack_node->row_index][tmp_stack_node->col_index].value = tmp_stack_node->value;
-						/* Check if we're at the last column */
-						if (tmp_stack_node->col_index == N-1){
-							tmp_stack_node->row_index +=1;
-							tmp_stack_node->col_index = 0;
-							tmp_stack_node->value = 1;
-							stack_push(helper_stack, tmp_stack_node);
-
-						} else {
-							tmp_stack_node->col_index += 1;
-							tmp_stack_node->value = 1;
-							stack_push(helper_stack, tmp_stack_node);
-						 }
-					 }
-				 }
-				/* Cell placement isn't legal */
-				else {
-					increment_top_node_value(helper_stack);
-				 }
-			}
-		}
-		/* all possible legal values for this cell have been used */
-		else {
-			/* If we're back at 0,0 we finished going through the entire board */
-			if (tmp_stack_node->row_index == 0 && tmp_stack_node->col_index == 0){
-				break;
-			}
-			else {
-				 /* If cell isn't fixed - change it's value to 0 and backtrack.*/
-				if (game_board->board[tmp_stack_node->row_index][tmp_stack_node->col_index].is_fixed != 1){
-					game_board->board[tmp_stack_node->row_index][tmp_stack_node->col_index].value = 0;
-				}
-
-				stack_pop(helper_stack);
-				increment_top_node_value(helper_stack);
-			}
-		}
-	}
-
-	free_stack_mem(helper_stack);
-
-	return solution_count;
-}
-
-cell_node* create_stack_node(int row, int col, int value) {
-	cell_node* stack_node;
-
-	stack_node = (cell_node*)calloc(1, sizeof(cell_node));
-
-	if (stack_node == NULL){
+	if (ret == NULL){
 		printf("ERROR: memory allocation failed");
 		exit(1);
 	}
 
-	stack_node->row_index = row;
-	stack_node->col_index = col;
-	stack_node->value = value;
-
-	return stack_node;
+	for (i = 0; i < N; i++){
+		for (j = 0; j < N; j++){
+			if(game_board->board[i][j].value == 0){
+				ret[k].row_index = i;
+				ret[k].col_index = j;
+				ret[k].value = 1;
+				k++;
+			}
+		}
+	}
+	return ret;
 }
 
-void increment_top_node_value(Stack* stack) {
-	cell_node* tmp_stack_node = (cell_node*)get_stack_top_element(stack);
-	tmp_stack_node->value +=1;
+int exhaustive_backtracking_solution_count(board* game_board) {
+	int N = game_board->m * game_board->n;
+	int current_index = 0;
+	int num_solutions = 0;
+	Stack* backtrack_stack = NULL;
+	cell_node* current_cell_node;
+	int number_of_empty_cells;
+	cell_node* array_empty_indexes;
+
+	number_of_empty_cells = num_empty_cells(game_board); /*get number of empty cells in the board*/
+	if (number_of_empty_cells == 0){ /*no empty cells found so the board is solved and has 1 solution*/
+		return 1;
+	}
+
+	/*get empty cells indexes and put it in a array*/
+	array_empty_indexes = empty_cells_indexes(game_board, number_of_empty_cells);
+	backtrack_stack = stack_init();
+
+	stack_push(backtrack_stack, &array_empty_indexes[0]); /*insert first empty cell to stack*/
+
+	while(get_stack_size(backtrack_stack) > 0){
+		current_cell_node = (cell_node*)get_stack_top_element(backtrack_stack);
+
+		if(current_cell_node->value > N){ /*all possible values has been checked and none is legal*/
+			array_empty_indexes[current_index].value = 1;
+			game_board->board[current_cell_node->row_index][current_cell_node->col_index].value = 0;
+			stack_pop(backtrack_stack); /*pop from stack*/
+			current_index -= 1;
+			if(get_stack_size(backtrack_stack) > 0){
+				current_cell_node = (cell_node*)get_stack_top_element(backtrack_stack);
+				current_cell_node->value += 1;
+			}
+		}
+		/*if this value is legal*/
+		else if(is_legal_cell(game_board, current_cell_node->row_index, current_cell_node->col_index, current_cell_node->value)){
+			game_board->board[current_cell_node->row_index][current_cell_node->col_index].value = current_cell_node->value;
+			if(current_index < number_of_empty_cells - 1){
+				current_index += 1;
+				current_cell_node = &array_empty_indexes[current_index];
+				stack_push(backtrack_stack, current_cell_node);
+				continue;
+			}
+			num_solutions++;
+			current_cell_node->value += 1;
+		}
+		/*value is not legal and is smaller than N*/
+		else{
+			current_cell_node->value += 1;
+		}
+	}
+
+
+	free(array_empty_indexes);
+	free_stack_mem(backtrack_stack);
+
+	return num_solutions;
+
 }
-
-
-

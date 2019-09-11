@@ -50,6 +50,7 @@ int get_stack_size(Stack* stack);
  */
 void* get_stack_top_element(const Stack* stack);
 
+
 /* Free the stack's memory - by freeing all of it's nodes then the stack itself */
 void free_stack_mem(Stack* stack);
 

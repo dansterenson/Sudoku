@@ -6,11 +6,18 @@
  */
 
 #include "stack.h"
+#include "structures.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 
 Stack* stack_init(){
 	Stack* stack = (Stack*)calloc(1, sizeof(Stack));
+	if(stack == NULL){
+		printf("Error in allocating memory.\n");
+		exit(EXIT_FAILURE);
+	}
+
 	init_list(stack);
 
 	return stack;
@@ -41,6 +48,7 @@ void* get_stack_top_element(const Stack* stack){
 	return get_node_data(get_head_of_list(stack));
 }
 
+
 void free_stack_mem(Stack* stack) {
-	free_list_mem(stack,free);
+	free_list_mem(stack, free);
 }
