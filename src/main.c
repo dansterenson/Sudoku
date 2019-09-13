@@ -10,9 +10,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "parser.h"
+#include <time.h>
 
 
 int main() {
+	srand(time(0));
 	bool need_to_exit = false;
 	char command[COMMAND_SIZE + 1];
 	game* current_game = create_game(3, 3, init, true);

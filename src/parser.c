@@ -243,9 +243,10 @@ void parse_set_command(command_descriptor_t* pcommand_descriptor, char** argv, i
 	}
 
 	/*in solve mode user can't change fixed cells*/
-	if((current_game->mode == solve) && (current_board->board[x - 1][y - 1].is_fixed == true)){
-		printf("Error: this cell is fixed and cannot be changed.\n");
-		return;
+	if(current_game->mode == solve){
+		if(current_board->board[y - 1][x - 1].is_fixed == true){
+			printf("Error: this cell is fixed and cannot be changed.\n");
+			return;
 	}
 
 	handle_set_command(current_game, y - 1, x - 1, z);
