@@ -192,7 +192,6 @@ void handle_generate_command(game* current_game, int x, int y){
 					}
 				}
 			}
-			print_board(copy_of_board, current_game);
 			cnt++;
 		}
 
