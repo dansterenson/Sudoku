@@ -7,42 +7,38 @@
 #include "structures.h"
 
 /*
- * This module includes utility functions that are used in the logic
- * concerning Gurobi - both for LP and ILP.
+ * Creates Xijk variables for optimization: value k at cell <i, j>.
+ * Creates variables only for cells <i, j> that are not filled yet, and for each such cell, only for legal k values.
+ *
+ * The returned variables list is sorted by Xijk, easily allowing to notice when a variable belongs to another cell than
+ * the previous variable - this allows tranversing the board fewer times.
  */
+GRB_vars* get_variables(board* board);
+
+/* One value per cell: for each cell <i, j> that was not removed from the variables list: sum(Xijk) = 1. */
+int add_cell_single_value_constraints(GRBmodel *model,  GRB_vars* vars);
 
 /*
- * Returns Gurobi variables x_ijk to be used in the optimization process.
- * The variables constitute the cell's coordinates - (i,j) and the cell's value - k.
- * The method returns a sorted variable list with all legal k values,
- * (sorted by i,j,k) for cells that are still empty. The sorted list of variables allows us to
- * go over the board more quickly, since we can easily spot when a variable belongs to a different
- * cell than the previous one.
+ * Each row contains each value once: for each j, k combination: sum(Xijk) = 1.
+ * Only add constraints for values (k) that do not already appear in the row.
  */
-GRB_vars* get_grb_vars(board* game_board);
-
+int add_row_constraints(GRBmodel *model, GRB_vars* vars, board* board);
 /*
- * Handle constraints for rows and columns - each row and col should contain only one
- * copy of each possible value. Improve performance by not setting constraints for values
- * that already exist in the row/column.
+ * Each column contains each value once: for each i, k combination: sum(Xijk) = 1.
+ * Only add constraints for values (k) that do not already appear in the column.
  */
-int handle_row_col_constraints(Constraints row_or_column, board* game_board, GRB_vars* vars, GRBmodel *model);
-
+int add_col_constraints(GRBmodel *model, GRB_vars* vars, board* board);
 /*
- * Add block constraints - each block should contain only one appearance of each value.
- * Minimize the amount of constraints by not setting constraints for values that already exist in the block.
+ * Each block contains each value once, use the board sizes to determine the blocks and set the contraints.
+ * Only add constraints for values (k) that do not already appear in the block.
  */
-int handle_block_constraints(board* game_board, GRB_vars* vars, GRBmodel *model);
+int add_block_constraints(GRBmodel *model, GRB_vars* vars, board* board);
 
-/* Add the constraint such that each cell will have only a single value. */
-int handle_single_value_constraints(GRB_vars* vars, GRBmodel *model);
+void release_vars_memory(GRBvariable** vars, int amount);
+void release_gurobi_vars_memory(GRB_vars* vars_ptr);
 
-/* Add the constraint such that every Gurobi variable x_ijk will represent
- * an approximation - e.g: probability, in the LP soluton.
- */
-int handle_constraints_LP(GRB_vars* vars_ptr, GRBmodel *model);
+/* Add constraints such that every Xijk will represent a "probability" in the LP guess solution. */
+int add_LP_xijk_constraints(GRBmodel *model, GRB_vars* vars_ptr);
 
-/* Free all Gurobi variables related memory. */
-void free_all_grb_vars(GRB_vars* vars_ptr);
 
 #endif /* GUROBI_HELPER_UTILS_H_ */

@@ -16,7 +16,7 @@
 
 
 void memory_alloc_problem() {
-	printf("Error in allocating memory.\n");
+	printf("Error: problem in memory allocation.\n");
 	exit(EXIT_FAILURE);
 }
 
@@ -118,14 +118,24 @@ void file_not_right_format(FILE *fp){
 	}
 }
 
+int file_empty(FILE *fp){
+	char c = '\0';
+	int num_read = 0;
+	num_read = fscanf(fp, " %c", &c);
+	if(num_read == EOF){
+		return true;
+	}
+	return false;
+}
+
 int load_game_from_file(char* path, board** loaded_board){
 	FILE *fp;
-	char c;
-	int cell_value;
 	int i,j;
 	int new_m, new_n;
 	int num_read = 0;
+	int N;
 	board* new_board;
+	char is_fixed;
 
 	fp = fopen(path, "r");
 
@@ -134,47 +144,63 @@ int load_game_from_file(char* path, board** loaded_board){
 		return false;
 	}
 
-	num_read = fscanf(fp, "%d", &new_m);
+	num_read = fscanf(fp, " %d %d ", &new_m, &new_n);
 
-	if(num_read != 1 || new_m == 0){
-		file_not_right_format(fp);
+	if(num_read != 2){
+		printf("Error, could not parse board dimensions\n");
 		fclose(fp);
 		return false;
 	}
 
-	num_read = fscanf(fp, "%d", &new_n);
-
-	if(num_read != 1 || new_n == 0){
-		file_not_right_format(fp);
+	if(new_m < 0 || new_n < 0){
+		printf("Error, board dimensions should be positive\n");
 		fclose(fp);
 		return false;
 	}
 
 	new_board = create_board(new_n, new_m);
+	N = new_n * new_m;
 
-	for(i = 0; i < new_n*new_m; i++){
-		for(j = 0; j < new_n*new_m; j++){
-			num_read = fscanf(fp, "%d", &cell_value);
-			if(!cell_in_right_format(new_n, new_m, cell_value)){
-				file_not_right_format(fp);
-				fclose(fp);
-				return false;
-			}
-			new_board->board[i][j].value = cell_value;
+	for(i = 0; i < N; i++){
+		for(j = 0; j < N; j++){
+			num_read = fscanf(fp," %d%c ", &new_board->board[i][j].value, &is_fixed);
 
-			num_read = fscanf(fp, "%c", &c);
-			if(c == '.'){
-				new_board->board[i][j].is_fixed = 1;
+			if(num_read == 2){
+				if(is_fixed == '.'){
+					new_board->board[i][j].is_fixed = 1;
+				}
 			}
-			else if(c != ' ' || c != '\n' || c != '\r' || c != 't'){
+
+			else if(num_read == 1){
 				new_board->board[i][j].is_fixed = 0;
 			}
-			else{
-				file_not_right_format(fp);
+			else if(num_read == -1){
+				printf("Error, differences between board dimensions and number of cells.\n");
 				fclose(fp);
+				free_board_mem(new_board);
+				return false;
+			}
+			else{
+				printf("Error, failed reading the cells from loaded board.\n");
+				fclose(fp);
+				free_board_mem(new_board);
+				return false;
+			}
+
+			if(new_board->board[i][j].value < 0 || new_board->board[i][j].value > N){
+				printf("Error, file cells are not in the right range.\n");
+				fclose(fp);
+				free_board_mem(new_board);
 				return false;
 			}
 		}
+	}
+
+	if(!file_empty(fp)){
+		printf("Error, differences between board dimensions and number of cells.\n");
+		fclose(fp);
+		free_board_mem(new_board);
+		return false;
 	}
 
 	*loaded_board = new_board;

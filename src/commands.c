@@ -156,15 +156,17 @@ void handle_generate_command(game* current_game, int x, int y){
 	}
 
 	while(num_of_iteration < GENERATE_MAX_ITERATIONS){
+		need_new_iteration = 0;
 		cnt = 0;
-		set_array_zero(legal_values, N);
 
 		copy_of_board = copy_board(current_board);
 
 		while(cnt < x){
+			num_of_legal_val = 0;
 			cnt2 = 0;
-			empty_cells_count = num_empty_cells(current_board);
-			r = rand() % empty_cells_count; /*choose random cell*/
+			set_array_zero(legal_values, N);
+			empty_cells_count = num_empty_cells(copy_of_board);
+			r = rand() % empty_cells_count; /*choose random empty cell*/
 			find_empty_cell(copy_of_board, &empty_cell_row, &empty_cell_col, r, N);/*find this cell*/
 			cell_legal_values(copy_of_board, legal_values, N, empty_cell_row, empty_cell_col);
 
@@ -184,11 +186,13 @@ void handle_generate_command(game* current_game, int x, int y){
 					if(legal_values[k] != 0){
 						cnt2++;
 					}
-					if(cnt2 == random_legal){
+					if(cnt2 - 1 == random_legal){
 						copy_of_board->board[empty_cell_row][empty_cell_col].value = k + 1;
+						break;
 					}
 				}
 			}
+			print_board(copy_of_board, current_game);
 			cnt++;
 		}
 

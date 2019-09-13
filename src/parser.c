@@ -147,7 +147,7 @@ int parse_command(char* command, game* current_game){
 
 
 	if((current_game->mode & command_descriptor->modes) == 0){
-		printf("Error: %s command is only available in %s\n", command_descriptor->command_string, mode_for_message[command_descriptor->modes]);
+		printf("Error: %s command is only available in %s mode\n", command_descriptor->command_string, mode_for_message[command_descriptor->modes]);
 		clean(argv, argc);
 		return 0;
 	}
