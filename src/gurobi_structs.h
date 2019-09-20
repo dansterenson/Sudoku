@@ -7,9 +7,11 @@
  /*
   * This module contains custom Structs used in Gurobi models (Both LP and ILP),
   * to store the relevant variables for Linear Programming calculations.
-  * These Structs spare us from traversing the game board multiple times.
   */
 
+/* An enum for the Handle row-col constraints - to choose which constraint
+ * to handle within the function itself.
+ */
 typedef enum {
 	ROW,
 	COLUMN

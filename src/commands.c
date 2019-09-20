@@ -1,10 +1,3 @@
-/*
- * command.c
- *
- *  Created on: Aug 12, 2019
- *      Author: dan
- */
-
 #include "commands.h"
 #include "main_aux.h"
 #include <stdlib.h>
@@ -18,7 +11,7 @@ void handle_solve_command(game* current_game, char* path){
 	board* loaded_board;
 	list* new_list;
 
-	if(load_game_from_file(path, &loaded_board) == true){
+	if(load_game_from_file(path, &loaded_board, E_SOLVE_CMD) == true){
 		free_list_mem(current_game->undo_redo_list, free_board_mem);
 		new_list = create_empty_list();
 		list_push(new_list, loaded_board);
@@ -35,7 +28,7 @@ void handle_edit_command(game* current_game, char* path){
 	list* new_list;
 
 	if(path != NULL){ /*there is a path (optional parameter)*/
-		if(load_game_from_file(path, &loaded_board) == true){
+		if(load_game_from_file(path, &loaded_board, E_EDIT_CMD) == true){
 			free_list_mem(current_game->undo_redo_list, free_board_mem);
 			new_list = create_empty_list();
 			list_push(new_list, loaded_board);
@@ -79,12 +72,8 @@ void handle_set_command(game* current_game,int row, int col, int new_value){
 	copy_of_board = copy_board(current_board);
 
 	copy_of_board->board[row][col].value = new_value;
-	if(!is_legal_cell(copy_of_board, row, col, new_value)){
-		copy_of_board->board[row][col].is_error = true;
-	}
-	else{
-		copy_of_board->board[row][col].is_error = false;
-	}
+	update_error_cells(copy_of_board);
+
 	list_push(current_game->undo_redo_list, copy_of_board);
 	current_board = (board*)current_game->undo_redo_list->head->data;
 	print_board(current_board, current_game);
@@ -93,6 +82,8 @@ void handle_set_command(game* current_game,int row, int col, int new_value){
 		if(board_is_full(current_board)){
 			if(board_is_completed(current_board) == true){
 				current_game->mode = init;
+				free_list_mem(current_game->undo_redo_list, free_board_mem);
+				current_game->undo_redo_list = create_empty_list();
 			}
 		}
 	}
@@ -101,27 +92,44 @@ void handle_set_command(game* current_game,int row, int col, int new_value){
 
 void handle_validate_command(game* current_game){
 	board* current_board = (board*)current_game->undo_redo_list->head->data;
-
-	gurobi_main_ILP(current_board, 0); /*1 if optimal solution found*/
+	int ret = gurobi_main_ILP(current_board, 0);
+	
+	if(ret == 1){ /*1 if optimal solution found*/
+		printf("Validation completed successfully: Solution found to the board\n");
+	}
+	else if(ret == 0){
+		printf("Validation failed: Board is unsolvable\n");
+	}
+	else{
+		printf("Validation failed: Optimization was stopped early\n");
+	}
 }
 
 void handle_guess_command(game* current_game, float threshold){
 	board* current_board = current_game->undo_redo_list->head->data;
 	board* copy_of_board;
+	int ret;
 
 	copy_of_board = copy_board(current_board);
+	ret = gurobi_main_LP(copy_of_board, threshold, NULL);
 
-	if (gurobi_main_LP(copy_of_board, threshold) == 1){ /*optimal solution found*/
+	if (ret == 1){ /*optimal solution found*/
 		list_push(current_game->undo_redo_list, copy_of_board);
-		if(board_is_completed(current_board) == true){
-			print_board((board*)current_game->undo_redo_list->head->data, current_game);
-			current_game->mode = init;
-			return;
+		print_board((board*)current_game->undo_redo_list->head->data, current_game);
+		current_board = current_game->undo_redo_list->head->data;
+		if(board_is_full(current_board)){
+			if(board_is_completed(current_board) == true){
+				current_game->mode = init;
+			}
 		}
+		return;
 	}
+
 	else{
-		free_board_mem(copy_of_board);
+		printf("Error: Board is unsolvable\n"); 
 	}
+		
+	free_board_mem(copy_of_board);
 	return;
 }
 
@@ -143,10 +151,16 @@ void handle_generate_command(game* current_game, int x, int y){
 	int* legal_values;
 	int num_of_legal_val = 0;
 	int random_legal;
+	
 
 	empty_cells_count = num_empty_cells(current_board);
 	if(empty_cells_count < x){
 		printf("Error: the board does not contain %d empty cells.\n", x);
+		return;
+	}
+	
+	if(board_is_erroneous(current_board)){
+		printf("Error: board is erroneous and unsolvable, generate command cannot be performed\n");
 		return;
 	}
 
@@ -208,13 +222,13 @@ void handle_generate_command(game* current_game, int x, int y){
 				keep_y_cells(copy_of_board, y);
 				list_push(current_game->undo_redo_list, copy_of_board);
 				free(legal_values);
+				print_board((board*)current_game->undo_redo_list->head->data, current_game);
 				return;
 			}
 		}
 	}
 
-	printf("Error: generator problem, could not generate a solvable board\n");
-	free_board_mem(copy_of_board);
+	printf("Error: generator problem, could not generate the board\n");
 	free(legal_values);
 	return;
 }
@@ -227,7 +241,7 @@ void handle_undo_redo_command(game* current_game, int command){
 
 	if(command == E_UNDO_CMD){ /*undo command*/
 		if(current_board_list->head->prev == NULL){ /*check if there is a undo move*/
-			printf("Error, there are no moves to undo\n");
+			printf("Error: there are no moves to undo\n");
 			return;
 		}
 		board_after_command = (board*)current_board_list->head->prev->data;
@@ -235,7 +249,7 @@ void handle_undo_redo_command(game* current_game, int command){
 	}
 	else { /*redo command*/
 		if(current_board_list->head->next == NULL){ /*check if there is a redo move*/
-			printf("Error, there are no moves to redo\n");
+			printf("Error: there are no moves to redo\n");
 			return;
 		}
 		board_after_command = (board*)current_board_list->head->next->data;
@@ -252,31 +266,69 @@ void handle_save_command(game* current_game, char* path){
 	board* current_board = (board*)current_game->undo_redo_list->head->data;
 
 	if(gurobi_main_ILP(current_board, 0) != 1 && current_game->mode == edit){/* in edit mode boards without a solution may not be saved.*/
-		printf("Boards without a solution may not be saved in edit mode\n");
+		printf("Error: board in unsolvable. Boards without a solution may not be saved in edit mode\n");
 		return;
 	}
+
 	save_game_to_file(current_game, path);
 }
 
-void handle_hint_and_ghint_command(game* current_game, int row, int col,int command){
+void handle_hint_and_ghint_command(game* current_game, int row, int col, int command){
 	int return_val;
 	board* current_board = current_game->undo_redo_list->head->data;
 	board* copy_of_board;
+	double* cell_prob_arr = NULL;
+	int i;
+	int N = current_board->n * current_board->m;
+	cell_probability* prob_struct = NULL;
 
 	copy_of_board = copy_board(current_board);
+
 	if(command == E_HINT_CMD){ /*hint command*/
 		return_val = gurobi_main_ILP(copy_of_board, 1);
 	}
+
 	else {/*guess_hint_commant*/
-		return_val = gurobi_main_LP(copy_of_board, 0.0);
+		cell_prob_arr = (double*)calloc(N, sizeof(double));
+		if(cell_prob_arr == NULL){
+			memory_alloc_problem();
+		}
+
+		prob_struct = (cell_probability*)calloc(1, sizeof(struct cell_probability));
+		if(prob_struct == NULL){
+			memory_alloc_problem();
+		}
+
+		init_cell_prob_struct(prob_struct, cell_prob_arr, row, col);
+		return_val = gurobi_main_LP(copy_of_board, 0.0, prob_struct);
 	}
 
+
 	if(return_val != 1){
+		printf("Error: Board is unsolvable\n");
 		free_board_mem(copy_of_board);
+
+		if(command == E_GUESS_HINT_CMD){
+			free(prob_struct);
+			free(cell_prob_arr);
+		}
 		return;
 	}
 	else{
-		printf("Hint: the value of cell (%d,%d) is %d\n", col, row, copy_of_board->board[col][row].value);
+		if(command == E_HINT_CMD){
+			printf("Hint: set cell (%d,%d) to %d\n", col + 1, row + 1, copy_of_board->board[row][col].value);
+		}
+		
+		else{
+			i = 0;
+			for(i = 0; i < N; i++){
+				if (prob_struct->probability[i] > 0){
+					printf("Value is: %d, Score is: %f\n", i + 1, prob_struct->probability[i]);
+				}
+			}
+			free(cell_prob_arr);
+			free(prob_struct);
+		}
 		free_board_mem(copy_of_board);
 		return;
 	}
@@ -338,8 +390,9 @@ void handle_autofill_command(game* current_game){
 			}
 		}
 	}
-
+	
 	print_changes_boards(current_board, copy_of_board);
+	update_error_cells(copy_of_board);
 	list_push(current_game->undo_redo_list, copy_of_board);
 	print_board(current_game->undo_redo_list->head->data, current_game);
 
@@ -358,6 +411,7 @@ void handle_reset_command(game* current_game){
 	while(undo_redo_list->head->prev != NULL){
 		undo_redo_list->head = undo_redo_list->head->prev;
 	}
+	printf("Board was reset\n");
 	print_board(current_game->undo_redo_list->head->data, current_game);
 	return;
 }

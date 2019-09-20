@@ -1,16 +1,13 @@
-/*
- * structures.h
- *
- *  Created on: Aug 7, 2019
- *      Author: dan
- */
-
 #ifndef STRUCTURES_H_
 #define STRUCTURES_H_
 
 #include <stdbool.h>
 #include "linked_list.h"
 
+/*
+ *this module conatains the necessary structures for the game.
+ */
+ 
 typedef enum {
 	init = 1,
 	edit = 2,
@@ -63,5 +60,17 @@ typedef struct cell_node {
 	int col_index;
 	int value;
 } cell_node;
+
+/*
+ * A custom struct to be used in the guess_hint command.
+ * It contains the user chosen coordinates - row, col, and a board_cell array
+ * and it's probability to be a part of a valid solution.
+ */
+typedef struct cell_probability {
+	double* probability;
+	int row;
+	int col;
+} cell_probability;
+
 
 #endif /* STRUCTURES_H_ */

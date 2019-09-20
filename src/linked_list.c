@@ -1,20 +1,13 @@
-/*
- * linked_list.c
- *
- *  Created on: Aug 6, 2019
- *      Author: dan
- */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include "linked_list.h"
-
+#include "main_aux.h"
 
 Node* create_node(void* data){
 	Node* node;
 	node = (Node*) calloc(1, sizeof(Node));
 	if(node == NULL){ /*problem allocating memory*/
-		printf("Error in allocating memory.\n");
+		printf("Error: problem in memory allocation.\n");
 		exit(EXIT_FAILURE);
 	}
 	else{
@@ -40,19 +33,45 @@ bool list_is_empty(const list* list){
 	return false;
 }
 
-void list_push(list* list, void* data){
-    Node* new_node = create_node(data);
+/*
+ * frees next nodes of list in case of set command or autofill command
+ * when the list head is in the middle of the list.
+ */
+ 
+void free_unrelevent_nodes(Node* node_to_free){
+	Node* temp;
+	board* data;
 
-    if (!list_is_empty(list)) {
-        list->head->next = new_node;
-        new_node->prev = list->head;
-        list->head = new_node;
-    }
-    else {
-        list->head = new_node;
-        list->tail = list->head;
-    }
-    list->size++;
+	while (node_to_free->next != NULL){
+		temp = node_to_free;
+		node_to_free = node_to_free->next;
+		data = temp->data;
+		free_board_mem((board*)data);
+		free(temp);
+	}
+	data = node_to_free->data;
+	free_board_mem((board*)data);
+	free(node_to_free);
+}
+
+
+void list_push(list* list, void* data){
+    	Node* new_node = create_node(data);
+	
+	if (!list_is_empty(list)) {
+		if(list->head->next != NULL){
+			free_unrelevent_nodes(list->head->next);
+		}
+
+		list->head->next = new_node;
+		new_node->prev = list->head;
+        	list->head = new_node;
+	}
+	else {
+    	    list->head = new_node;
+     	   list->tail = list->head;
+   	 }
+	list->size++;
 }
 
 void* list_pop(list* list){
@@ -95,6 +114,13 @@ void* get_node_data(const Node* node){
 
 void free_list_mem(list* list_to_free, void (*func_to_free_data)(void*)){
 	Node* temp;
+	
+	if(list_to_free->head != NULL){
+		while(list_to_free->head->next != NULL){
+			list_to_free->head = list_to_free->head->next;
+		}
+	}
+
 	while(list_to_free->head != NULL){
 		temp = list_to_free->head;
 		list_to_free->head = list_to_free->head->prev;

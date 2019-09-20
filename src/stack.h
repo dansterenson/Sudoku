@@ -1,10 +1,3 @@
-/*
- * stack.h
- *
- *  Created on: Aug 7, 2019
- *      Author: dan
- */
-
 #ifndef STACK_H_
 #define STACK_H_
 

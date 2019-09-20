@@ -1,10 +1,3 @@
-/*
- * linked_list.h
- *
- *  Created on: Aug 6, 2019
- *      Author: dan
- */
-
 #ifndef LINKED_LIST_H_
 #define LINKED_LIST_H_
 
@@ -15,12 +8,11 @@
  */
 
 
-
  /*
- * element of the list, contains two pointers,
- * one to the next node and one to the previous one.
- * contains a pointer to the data of the node.
- */
+  * element of the list, contains two pointers,
+  * one to the next node and one to the previous one.
+  * contains a pointer to the data of the node.
+  */
 typedef struct Node {
     void* data;
     struct Node* next;

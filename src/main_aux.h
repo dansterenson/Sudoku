@@ -1,16 +1,10 @@
-/*
- * main_aux.h
- *
- *  Created on: Aug 11, 2019
- *      Author: dan
- */
-
 #ifndef MAIN_AUX_H_
 #define MAIN_AUX_H_
 
 #include <stdlib.h>
 #include <stdio.h>
 #include "structures.h"
+#include "commands.h"
 
 #define MAX_PARAMETERS 3
 #define COMMAND_SIZE 256
@@ -18,7 +12,11 @@
 #define TRUE 1
 #define FALSE 0
 
-
+/*
+ * this module contains functions which are necessary for the
+ * game flow such as checking the board and freeing the game memory.
+ */
+ 
 /*
  * prints a right message when memory allocation failed
  * exits the program.
@@ -26,9 +24,9 @@
 void memory_alloc_problem();
 
 /*
- * gets the command from the user, returns 0 in success, -1 in EOF.
+ * gets the command from the user, returns 1 in success, 0 in EOF, -1 if the command is too long.
  */
-int get_command_from_user(char command[COMMAND_SIZE + 1]);
+int get_command_from_user(char* command);
 
 /*
  * creates a board with n rows of blocks and m columns of blocks.
@@ -56,19 +54,20 @@ int cell_in_right_format(int n, int m, int cell);
 
 /*
  * prints a message that a file is not in the right format
- * returns -1.
+ * closes the file.
  */
 void file_not_right_format(FILE *fp);
+
 
 /*
  * loads a game from a file.
  * returns false in error
  * otherwise returns true.
  */
-int load_game_from_file(char* path, board** loaded_board);
+int load_game_from_file(char* path, board** loaded_board, int command);
 
 /*
- * saves a game from a file.
+ * saves a game to a given file.
  * returns false in error
  * otherwise returns true.
  */
@@ -88,11 +87,6 @@ void free_undo_redo_list(list* list_to_free);
  * frees the game memory.
  */
 void free_game_mem(game* game);
-
-/*
- * prints a separating line.
- */
-void print_separating_line(int n, int m);
 
 /*
  * prints the given board
@@ -158,6 +152,11 @@ void print_changes_boards(board* first_board, board* second_board);
  * sets array to zeros.
  */
 void set_array_zero(int* arr, int size);
+
+/*
+ * init stucture of cell probabilities.
+ */
+void init_cell_prob_struct(cell_probability* prob_struct, double* prob_arr, int row, int col);
 
 /*
  * checks if a given board is completed and writes a message.

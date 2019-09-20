@@ -1,9 +1,3 @@
-/*
- * game_utils.c
- *
- *  Created on: Aug 17, 2019
- *      Author: GuyErez
- */
 #include "structures.h"
 #include "game_utils.h"
 #include "stack.h"
@@ -44,7 +38,6 @@ int is_legal_cell(board* current_board, int row, int col, int num) {
 	if(num == 0){
 		return 1;
 	}
-
 	return is_row_legal(game_board, row, col, num, N)
 			&& is_col_legal(game_board, row, col, num, N)
 			&& is_block_legal(game_board, row, col, num, rows_of_blocks, cols_of_blocks);
@@ -73,13 +66,13 @@ int is_col_legal(board_cell** game_board, int row, int col, int num, int N) {
 }
 
 int is_block_legal(board_cell** game_board, int row, int col, int num, int rows_of_blocks, int cols_of_blocks) {
-	int block_start_row = row - row % rows_of_blocks;
-	int block_start_col = col - col % cols_of_blocks;
+	int block_start_row = row - row % cols_of_blocks;
+	int block_start_col = col - col % rows_of_blocks;
 	int i = block_start_row;
 	int j = block_start_col;
 
-	for(i = block_start_row; i < block_start_row + rows_of_blocks; i++) {
-		for(j = block_start_col; j < block_start_col + cols_of_blocks; j++) {
+	for(i = block_start_row; i < block_start_row + cols_of_blocks; i++) {
+		for(j = block_start_col; j < block_start_col + rows_of_blocks; j++) {
 			if (i == row && j == col) {
 				continue;
 			}
@@ -90,6 +83,27 @@ int is_block_legal(board_cell** game_board, int row, int col, int num, int rows_
 	}
 	return 1;
 }
+
+void update_error_cells(board* current_board){
+	int N = current_board->n * current_board->m;
+	int i;
+	int j;
+	int ret;
+
+	for (i = 0; i < N; i++){
+		for (j = 0; j < N; j++){
+			int val = current_board->board[i][j].value;
+			ret = is_legal_cell(current_board, i, j, val);
+			if(ret == true){
+				current_board->board[i][j].is_error = false;
+			}
+			else{
+				current_board->board[i][j].is_error = true;
+			}
+		}
+	}
+}
+
 
 cell_node* empty_cells_indexes(board* game_board, int number_of_empty_cells){
 	int N = game_board->m * game_board->n;

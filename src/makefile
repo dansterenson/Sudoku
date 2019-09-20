@@ -9,8 +9,8 @@ CSRCS   =  commands.c  main_aux.c game_utils.c main.c stack.c linked_list.c pars
 OBJS    = commands.o  main_aux.o game_utils.o main.o stack.o linked_list.o parser.o gurobi_helper_utils.o gurobi_solver_LP.o gurobi_solver_ILP.o
 
 
-$(EXEC): $(OBJS)
-	$(CC) $(OBJS)  $(GUROBI_LIB) -o $@ -lm
+all: $(OBJS)
+	$(CC) $(OBJS)  $(GUROBI_LIB) -o $(EXEC) -lm
 
 %.o: %.c
 	$(CC)  $(CFLAGS) $(GUROBI_COMP) -c $<

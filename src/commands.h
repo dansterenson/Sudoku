@@ -1,10 +1,3 @@
-/*
- * commands.h
- *
- *  Created on: Aug 12, 2019
- *      Author: dan
- */
-
 #ifndef COMMANDS_H_
 #define COMMANDS_H_
 
@@ -33,9 +26,8 @@ typedef enum {
 
 #define GENERATE_MAX_ITERATIONS 1000
 
-
 /*
- * this module is in charge of handling the different commands
+ * this module is in charge of handling the commands of the sudoku game.
  */
 
 
@@ -88,20 +80,19 @@ void handle_undo_redo_command(game* current_game, int command);
 
 /*
  * handle the save command, saves the current game board to a specified file.
- * returns 0 in success, -1 otherwise.
  */
 void handle_save_command(game* current_game, char* path);
 
 /*
  * handle the hint command and the guess hint command.
  * hint -  give a hint to the user by showing a solution of a single cell x,y.
- * guessHint - shows a guess to the user for single cell x,y
+ * guess_hint - shows a guess to the user for single cell x,y
  */
 void handle_hint_and_ghint_command(game* current_game, int row, int col,int command);
 
 /*
  * handle the num_solutions command, prints the number of solutions
- * for the current board.
+ * for the current board using backtracking.
  */
 void handle_num_solutions_command(game* current_game);
 

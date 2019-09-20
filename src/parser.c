@@ -1,10 +1,3 @@
-/*
- * parser.c
- *
- *  Created on: Aug 12, 2019
- *      Author: dan
- */
-
 #include <stdlib.h>
 #include "structures.h"
 #include "main_aux.h"
@@ -29,7 +22,10 @@ typedef struct command_desc{
 	handler_t handler;
 }command_descriptor_t;
 
-
+/*
+ * each function is in charge of checking the arguments given by the user to their command and call the handler function.
+ */
+ 
 void parse_solve_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game);
 
 void parse_edit_command(command_descriptor_t* pcommand_descriptor, char** argv, int argc, game* current_game);
@@ -89,10 +85,10 @@ const char * mode_for_message[] = {
 		"",
 		"init",
 		"edit",
-		"init or edit",
+		"init and edit",
 		"solve",
-		"init or solve",
-		"edit or solve",
+		"init and solve",
+		"edit and solve",
 };
 
 const char delimitor[8] = " \t\r\n";
@@ -104,6 +100,10 @@ void clean(char** argv,int argc){
 	}
 }
 
+/*
+ * finds the right command and parameters given by the user, fills the command descriptor with the right values.
+ * returns true in success and false if the command does not exists.
+ */
 int find_command_and_params(char* command, command_descriptor_t** command_descriptor, char** argv, int* argc){
 	char* command_name;
 	char* param;
@@ -118,7 +118,7 @@ int find_command_and_params(char* command, command_descriptor_t** command_descri
 	}
 
 	if(*command_descriptor == NULL){
-		printf("This command does not exists\n");
+		printf("Error: this command does not exists\n");
 		return false;
 	}
 
@@ -147,7 +147,7 @@ int parse_command(char* command, game* current_game){
 
 
 	if((current_game->mode & command_descriptor->modes) == 0){
-		printf("Error: %s command is only available in %s mode\n", command_descriptor->command_string, mode_for_message[command_descriptor->modes]);
+		printf("Error: %s command is not available in the current mode and only available in %s mode\n", command_descriptor->command_string, mode_for_message[command_descriptor->modes]);
 		clean(argv, argc);
 		return 0;
 	}
@@ -202,6 +202,11 @@ void parse_mark_errors_command(command_descriptor_t* pcommand_descriptor, char**
 	int x;
 	UNUSED(argc);
 	UNUSED(pcommand_descriptor);
+	
+	if(strlen(argv[0]) != 1){
+		printf("Error: parameter is invalid, should be 0 or 1\n");
+		return;
+	}
 
 	x = atoi(argv[0]);
 	if((x == 0 && strcmp(argv[0], "0") != 0) || (x != 0 && x != 1)){
@@ -233,12 +238,15 @@ void parse_set_command(command_descriptor_t* pcommand_descriptor, char** argv, i
 	y = atoi(argv[1]);
 	z = atoi(argv[2]);
 
-	if(check_atoi_error("X", x, argv[0]) || check_atoi_error("Y", y, argv[1])
-		|| check_atoi_error("Z", z, argv[2])){
+	if(check_atoi_error("X", x, argv[0]) || !check_range("X", x, 1, N)){
 		return;
 	}
 
-	if(!check_range("X", x, 1, N) || !check_range("Y", y, 1, N) || !check_range("Z", z, 0, N)){
+	if(check_atoi_error("Y", y, argv[1]) || !check_range("Y", y, 1, N)){
+		return;
+	}
+
+	if(check_atoi_error("Z", z, argv[2]) || !check_range("Z", z, 0, N)){
 		return;
 	}
 
@@ -247,6 +255,7 @@ void parse_set_command(command_descriptor_t* pcommand_descriptor, char** argv, i
 		if(current_board->board[y - 1][x - 1].is_fixed == true){
 			printf("Error: this cell is fixed and cannot be changed.\n");
 			return;
+		}
 	}
 
 	handle_set_command(current_game, y - 1, x - 1, z);
@@ -276,16 +285,16 @@ void parse_guess_command(command_descriptor_t* pcommand_descriptor, char** argv,
 	UNUSED(pcommand_descriptor);
 
 	threshold = atof(argv[0]);
-	if(threshold == 0.0 && strcmp(argv[0], "0") != 0){
+	if(threshold == 0.0 && strcmp(argv[0], "0.0") != 0){
 		printf("Error: the given threshold is invalid, should be a number.\n");
 		return;
 	}
-	if(threshold > 1.0 || threshold < 0.0){
-		printf("Error: the given threshold is invalid, should be a number between 0 and 1. format: guess X\n");
+	if(threshold > 1.0 || threshold <= 0.0){
+		printf("Error: the given threshold is invalid, should be a number int range (0.0, 1.0). format: guess X\n");
 		return;
 	}
 	if(board_is_erroneous(current_board)){
-		printf("board is erroneous\n");
+		printf("Error: the board is erroneous\n");
 		return;
 	}
 	handle_guess_command(current_game, threshold);
@@ -339,7 +348,7 @@ void parse_save_command(command_descriptor_t* pcommand_descriptor, char** argv, 
 
 	if(current_game->mode == edit){
 		if(board_is_erroneous(current_board)){
-			printf("Erroneous boards are not saved in edit mode\n");
+			printf("Error: the board is erroneous. Erroneous boards are not saved in edit mode\n");
 			return;
 		}
 	}
@@ -367,7 +376,7 @@ void parse_hint_command(command_descriptor_t* pcommand_descriptor, char** argv, 
 	}
 
 	if(board_is_erroneous(current_board) == true){
-		printf("Error: board is erroneous\n");
+		printf("Error: the board is erroneous\n");
 		return;
 	}
 
@@ -405,7 +414,7 @@ void parse_guess_hint_command(command_descriptor_t* pcommand_descriptor, char** 
 	}
 
 	if(board_is_erroneous(current_board) == true){
-		printf("Error: board is erroneous\n");
+		printf("Error: the board is erroneous\n");
 		return;
 	}
 
@@ -431,7 +440,7 @@ void parse_num_solutions_command(command_descriptor_t* pcommand_descriptor, char
 	UNUSED(pcommand_descriptor);
 
 	if(board_is_erroneous(current_board) == true){
-		printf("Error: board is erroneous\n");
+		printf("Error: the board is erroneous\n");
 		return;
 	}
 
@@ -448,7 +457,7 @@ void parse_autofill_command(command_descriptor_t* pcommand_descriptor, char** ar
 	UNUSED(pcommand_descriptor);
 
 	if(board_is_erroneous(current_board) == true){
-		printf("Error: board is erroneous\n");
+		printf("Error: the board is erroneous\n");
 		return;
 	}
 

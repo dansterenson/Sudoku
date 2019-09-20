@@ -1,10 +1,3 @@
-/*
- * main_aux.c
- *
- *  Created on: Aug 11, 2019
- *      Author: dan
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,22 +13,50 @@ void memory_alloc_problem() {
 	exit(EXIT_FAILURE);
 }
 
-int get_command_from_user(char command[COMMAND_SIZE + 1]){ /*from hw3*/
-	printf("enter command please: ");
-
-	if(fgets(command, (COMMAND_SIZE + 1), stdin) == NULL){
-		return -1;
-	}
-
-	while(command[0] == '\n' || command[0] == '\r'){
-		if(fgets(command, (COMMAND_SIZE + 1), stdin) == NULL){
-			return -1;
-		}
-		if(command[0] == '\0'){
-			return 0;
+/*
+ * check if the given string is empty.
+ */
+ 
+int is_empty_command(char* str_to_check){
+	unsigned int i;
+	for(i = 0; i < strlen(str_to_check); i++){
+		if(str_to_check[i] != '\n' && str_to_check[i] != '\t' && str_to_check[i] != '\r' && str_to_check[i] != ' '){
+			return false; /*not empty*/
 		}
 	}
-	return 0;
+	return true; /*empty string*/
+}
+
+
+int get_command_from_user(char* command){ /*from hw3*/
+	int i;
+	char c;
+	do{
+		printf("Enter command please: \n");
+		for(i = 0; (c = fgetc(stdin)) != '\n'; i++){
+			if(i > COMMAND_SIZE){
+				printf("Command is too long\n");
+				while((c = fgetc(stdin)) != '\n' && c != EOF); /*long command so flush buffer*/
+
+				if (ferror(stdin)){
+					printf("Error: fail in fgetc\n");
+					exit (1);
+				}
+				return -1;
+			}
+			if(c == EOF){
+				return 0;
+			}
+			command[i] = c;
+		}
+		command[i] = '\0';
+		if(ferror(stdin)){
+			printf("Error: fail in fgetc\n");
+			exit(1);
+		}
+	}
+	while(is_empty_command(command));
+	return 1;
 }
 
 board* create_board(int n, int m){
@@ -112,12 +133,15 @@ int cell_in_right_format(int n, int m, int cell){
 }
 
 void file_not_right_format(FILE *fp){
-	printf("Error, file is not in the right format\n");
+	printf("Error: file is not in the right format\n");
 	if(fclose(fp) != 0){
-		printf("Error, was not able to close file");
+		printf("Error: was not able to close file");
 	}
 }
 
+/*
+ *checks if the given file is empty, returns true if it is.
+ */
 int file_empty(FILE *fp){
 	char c = '\0';
 	int num_read = 0;
@@ -128,7 +152,61 @@ int file_empty(FILE *fp){
 	return false;
 }
 
-int load_game_from_file(char* path, board** loaded_board){
+/*
+ * updates the board cell's error value.
+ */
+void update_errors(board* loaded_board){
+	int i;
+	int j;
+	int val;
+	int N = loaded_board->n * loaded_board->m;
+
+	for (i = 0; i < N; i++){
+		for(j = 0; j < N; j++){
+			val = loaded_board->board[i][j].value;
+			if(!is_legal_cell(loaded_board, i, j, val)){
+				 loaded_board->board[i][j].is_error = true;
+			}
+		}
+	}
+}
+
+/*
+ * checks if the given board's fixed cells are erroneous. if so returns true.
+ */
+bool erroneus_fixed(board* board_to_check){
+	board* new_board;
+	int i;
+	int j;
+	int n = board_to_check->n;
+	int m = board_to_check->m;
+	int N = m * n;
+	new_board = create_board(n, m);
+	
+	for (i = 0; i < N; i++){
+		for(j = 0; j < N; j++){
+			if(board_to_check->board[i][j].is_fixed == true){
+				new_board->board[i][j].value = board_to_check->board[i][j].value;
+			}
+			else{
+				new_board->board[i][j].value = 0;
+			}
+		}
+	}
+	
+	update_errors(new_board);
+
+	if(board_is_erroneous(new_board) == true){
+		free_board_mem(new_board);
+		return true;
+	}
+	else{
+		free_board_mem(new_board);	
+		return false;
+	}	
+}
+
+int load_game_from_file(char* path, board** loaded_board, int command){
 	FILE *fp;
 	int i,j;
 	int new_m, new_n;
@@ -140,20 +218,20 @@ int load_game_from_file(char* path, board** loaded_board){
 	fp = fopen(path, "r");
 
 	if(fp == NULL){
-		printf("Error, was not able to open file\n");
+		printf("Error: was not able to open file\n");
 		return false;
 	}
 
 	num_read = fscanf(fp, " %d %d ", &new_m, &new_n);
 
 	if(num_read != 2){
-		printf("Error, could not parse board dimensions\n");
+		printf("Error: could not parse board dimensions\n");
 		fclose(fp);
 		return false;
 	}
 
 	if(new_m < 0 || new_n < 0){
-		printf("Error, board dimensions should be positive\n");
+		printf("Error: board dimensions should be positive\n");
 		fclose(fp);
 		return false;
 	}
@@ -167,7 +245,12 @@ int load_game_from_file(char* path, board** loaded_board){
 
 			if(num_read == 2){
 				if(is_fixed == '.'){
-					new_board->board[i][j].is_fixed = 1;
+					if(command == E_SOLVE_CMD){
+						new_board->board[i][j].is_fixed = 1;
+					}
+					else{
+						new_board->board[i][j].is_fixed = 0;
+					}
 				}
 			}
 
@@ -175,35 +258,44 @@ int load_game_from_file(char* path, board** loaded_board){
 				new_board->board[i][j].is_fixed = 0;
 			}
 			else if(num_read == -1){
-				printf("Error, differences between board dimensions and number of cells.\n");
+				printf("Error: differences between board dimensions and number of cells.\n");
 				fclose(fp);
 				free_board_mem(new_board);
 				return false;
 			}
 			else{
-				printf("Error, failed reading the cells from loaded board.\n");
+				printf("Error: failed reading the cells from loaded board.\n");
 				fclose(fp);
 				free_board_mem(new_board);
 				return false;
 			}
 
 			if(new_board->board[i][j].value < 0 || new_board->board[i][j].value > N){
-				printf("Error, file cells are not in the right range.\n");
+				printf("Error: file cells are not in the right range.\n");
 				fclose(fp);
 				free_board_mem(new_board);
 				return false;
 			}
 		}
 	}
-
+	
+	if(erroneus_fixed(new_board)){
+		printf("Error: board contain fixed cells which are erroneous and therefore cannot be load\n");
+		fclose(fp);
+		free_board_mem(new_board);
+		return false;
+	}
+	
 	if(!file_empty(fp)){
-		printf("Error, differences between board dimensions and number of cells.\n");
+		printf("Error: differences between board dimensions and number of cells.\n");
 		fclose(fp);
 		free_board_mem(new_board);
 		return false;
 	}
 
 	*loaded_board = new_board;
+	
+	update_errors(*loaded_board);
 
 	fclose(fp);
 	return true;
@@ -222,7 +314,7 @@ int save_game_to_file(game* current_game, char* path){
 	fp = fopen(path, "w+");
 
 	if(fp == NULL){
-		printf("Error, was not able to open file\n");
+		printf("Error: was not able to open file\n");
 		return false;
 	}
 
@@ -245,7 +337,7 @@ int save_game_to_file(game* current_game, char* path){
 	}
 
 	if(fclose(fp) != 0){
-		printf("Error, was not able to close file\n");
+		printf("Error: was not able to close file\n");
 		return false;
 	}
 
@@ -270,12 +362,15 @@ void free_undo_redo_list(list* list_to_free){
 	free_list_mem(list_to_free, free_board_mem);
 }
 
+
 void free_game_mem(game* game){
 	free_undo_redo_list(game->undo_redo_list);
 	free(game);
 }
 
-
+/*
+ * prints a separating line.
+ */
 void print_separating_line(int n, int m){
 	int N = n*m;
 	int num_of_dots;
@@ -306,6 +401,7 @@ void print_board(board* board_to_print, game* game){
 				if(board_to_print->board[i][j].is_fixed == true){
 					printf(" %2d.", board_to_print->board[i][j].value);
 				}
+
 				else if(board_to_print->board[i][j].is_error == true
 						&& (game->is_mark_errors == true || game->mode == edit)){
 					printf(" %2d*", board_to_print->board[i][j].value);
@@ -364,6 +460,12 @@ int board_is_full(board* board_to_check){
 	return true;
 }
 
+void init_cell_prob_struct(cell_probability* prob_struct, double* prob_arr, int row, int col){
+	prob_struct->probability = prob_arr;
+	prob_struct->row = row;
+	prob_struct->col = col;
+}
+	
 int board_is_erroneous(board* board_to_check){
 	int i,j;
 
@@ -453,7 +555,7 @@ void print_changes_boards(board* first_board, board* second_board){
 	for (i = 0; i < N; i++){
 		for (j = 0; j < N; j++){
 			if (first_board->board[i][j].value != second_board->board[i][j].value){
-				printf("Cell (%d, %d) was changed from value %d to value %d.\n", i + 1, j + 1, first_board->board[i][j].value , second_board->board[i][j].value);
+				printf("Cell (%d, %d) was changed from value %d to value %d.\n", j + 1, i + 1, first_board->board[i][j].value , second_board->board[i][j].value);
 			}
 		}
 	}
